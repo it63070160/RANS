@@ -21,10 +21,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
-    // flex: 1,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#fff',
-    // alignItems: 'center',
-    // justifyContent: 'center',
   },
   header:{
     width: '100%',
@@ -32,13 +31,14 @@ const styles = StyleSheet.create({
     borderWidth: 2
   },
   headerText:{
-    marginTop: 35,
+    margin: 10,
     fontSize: 25,
+    alignSelf: 'center',
   },
   mapContainer: {
     width: '100%',
-    height: '100%',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end'
+    height: '90%',
+    position: 'absolute',
+    bottom: 0,
   }
 });
