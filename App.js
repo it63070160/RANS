@@ -1,21 +1,19 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Button, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+// MapsView Screen
 import MapsView from './components/MapsView';
+
+const Drawer = createDrawerNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity>
-          <Text>=</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerText}>RANS</Text>
-      </View>
-      <View style={styles.mapContainer}>
-        <MapsView style={styles.map}/>
-      </View>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Drawer.Navigator screenOptions={{ headerStyle: styles.header, headerTitleAlign: 'center'}}>
+        <Drawer.Screen name="Maps" component={MapsView} options={{title:'RANS Maps'}}/>
+        <Drawer.Screen name="Test" component={MapsView}/>
+      </Drawer.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -26,19 +24,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header:{
-    width: '100%',
-    height: '10%',
-    borderWidth: 2
+    borderBottomWidth: 2,
+    borderBottomColor: 'black'
   },
-  headerText:{
-    margin: 10,
-    fontSize: 25,
-    alignSelf: 'center',
-  },
-  mapContainer: {
-    width: '100%',
-    height: '90%',
-    position: 'absolute',
-    bottom: 0,
-  }
 });
