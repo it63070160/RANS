@@ -7,16 +7,15 @@ export default function TimeNotifications(props) {
   useEffect(()=>{
     const CloseTime = setTimeout(()=>{
       props.closeModal()
-    }, 11000)
+    }, 10500)
     const Intime = setInterval(()=>{
       setcount(count-1);
     }, 1000)
     if(count<=0){
-      setcount(10)
       clearInterval(Intime)
       clearTimeout(CloseTime)
     }
-    return ()=> {clearInterval(Intime)}
+    return ()=> {{clearInterval(Intime)}}
   }, [count])
 
   return (
