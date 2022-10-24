@@ -1,6 +1,6 @@
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { StyleSheet, View, Button, Modal, Pressable, Text, TouchableOpacity } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, View, Modal, Pressable, Text, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
 import axios from 'axios'; // ดึง API
 import * as TaskManager from "expo-task-manager" // จัดการ task ตอน tracking
 import * as Location from 'expo-location'; // track user location
@@ -26,6 +26,19 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     }
   }
 })
+
+// Geofencing Task
+// TaskManager.defineTask("LOCATION_GEOFENCE", ({ data: { eventType, region }, error }) => {
+//   if (error) {
+//     // check `error.message` for more details.
+//     return;
+//   }
+//   if (eventType === Location.GeofencingEventType.Enter) {
+//     console.log("You've entered region:", region);
+//   } else if (eventType === Location.GeofencingEventType.Exit) {
+//     console.log("You've left region:", region);
+//   }
+// });
 
 export default function MapsView() {
   // *********************** Risk Area API ***********************
@@ -53,7 +66,6 @@ export default function MapsView() {
   // *********************** Notifications ***********************
   const [modalVisible, setModalVisible] = useState(false);
   const [AlertMe, setAlertMe] = useState(false);
-  const [NotificationAutoCloseCount, setNotificationAutoCloseCount] = useState(10);
 
   function closeModal(){
     setModalVisible(false)
@@ -102,7 +114,7 @@ export default function MapsView() {
 
   const calculatePreciseDistance = (position, data) => {
     var RiskArea = []
-    data.map((item, index)=>{
+    data.map((item)=>{
       var pdis = getPreciseDistance(
         position,
         item.พิกัด.indexOf(" ")>=0?{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" ")))}:{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",")+1))}
@@ -114,7 +126,6 @@ export default function MapsView() {
     console.log(RiskArea)
     if(RiskArea.length>0){
       setModalVisible(true)
-      setNotificationAutoCloseCount(10)
     }
     setlistRiskArea(RiskArea)
   };
@@ -136,8 +147,8 @@ export default function MapsView() {
       {
         // For better logs, we set the accuracy to the most sensitive option
         accuracy: Location.Accuracy.BestForNavigation,
-        // distanceInterval: 1,
-        timeInterval: 20000
+        enableHighAccuracy:true,
+        timeInterval: 23000
       },
       location => {
         setPosition(location.coords)
@@ -151,12 +162,63 @@ export default function MapsView() {
     foregroundSubscription?.remove()
   }
 
+  const startBackgroundUpdate = async () => {
+    // Don't track position if permission is not granted
+    const { granted } = await Location.getBackgroundPermissionsAsync()
+    if (!granted) {
+      console.log("location tracking denied")
+      return
+    }
+
+    // Make sure the task is defined otherwise do not start tracking
+    const isTaskDefined = await TaskManager.isTaskDefined(LOCATION_TASK_NAME)
+    if (!isTaskDefined) {
+      console.log("Task is not defined")
+      return
+    }
+
+    // Don't track if it is already running in background
+    const hasStarted = await Location.hasStartedLocationUpdatesAsync(
+      LOCATION_TASK_NAME
+    )
+    if (hasStarted) {
+      console.log("Already started")
+      return
+    }
+
+    await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+      // For better logs, we set the accuracy to the most sensitive option
+      accuracy: Location.Accuracy.BestForNavigation,
+      // Make sure to enable this notification if you want to consistently track in the background
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: "Location",
+        notificationBody: "Location tracking in background",
+        notificationColor: "#fff",
+      },
+    })
+  }
+
+  // Stop location tracking in background
+  const stopBackgroundUpdate = async () => {
+    const hasStarted = await Location.hasStartedLocationUpdatesAsync(
+      LOCATION_TASK_NAME
+    )
+    if (hasStarted) {
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME)
+      console.log("Location tacking stopped")
+    }
+  }
+
   useEffect(()=>{
     const requestPermissions = async () => {
       const foreground = await Location.requestForegroundPermissionsAsync()
       if (foreground.granted) await Location.requestBackgroundPermissionsAsync()
       let location = await Location.getCurrentPositionAsync({});
       setPosition(location.coords)
+      // for geofencing หรือ การทำระยะล้อมจุดที่กำหนดและสามารถแจ้งเตือนขณะ user เข้าในระยะ
+      // let region = {identifier:"1", latitude: 13.7547773, longitude: 100.5134903, radius:1}
+      // Location.startGeofencingAsync("LOCATION_GEOFENCE", [region])
     }
     requestPermissions();
   }, [])
@@ -230,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F194FF',
   },
   buttonClose: {
-    backgroundColor: '#FF0000',
+    backgroundColor: '#F36C6C',
   },
   textStyle: {
     color: 'white',
