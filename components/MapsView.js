@@ -40,20 +40,22 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 //   }
 // });
 
-export default function MapsView() {
+export default function MapsView({ navigation, route }) {
   // *********************** Risk Area API ***********************
   // data เก็บข้อมูลจุดเสี่ยง 100 จุดจาก API
   const [data, setData] = useState([]);
   // function GetPosition ดึงข้อมูลจุดเสี่ยง 100 จุดจาก API
   async function GetPosition(){
     try{
-      await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
-              .then(response=>{
-                setData(response.data.result.records)
-              })
-              .catch(error=>{
-                console.error(error)
-              })
+      const customData = require('../assets/RiskArea.json')
+      setData(customData.result.records)
+      // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
+      //         .then(response=>{
+      //           setData(response.data.result.records)
+      //         })
+      //         .catch(error=>{
+      //           console.error(error)
+      //         })
     }catch(err){
       console.error(err)
     }
@@ -66,9 +68,17 @@ export default function MapsView() {
   // *********************** Notifications ***********************
   const [modalVisible, setModalVisible] = useState(false);
   const [AlertMe, setAlertMe] = useState(false);
+  const [Ignored_Notification, setIgnored_Notification] = useState([])
 
   function closeModal(){
     setModalVisible(false)
+  }
+
+  function autoCloseModal(){
+    setModalVisible(false)
+    listRiskArea.map((item)=>{ // *** Problem : ยังเก็บตัวซ้ำ
+      setIgnored_Notification((prevIgnored_Notification)=>([...prevIgnored_Notification, item]))
+    })
   }
 
   function RiskNotification(){
@@ -92,14 +102,25 @@ export default function MapsView() {
           <View style={styles.modalView}>
             <Text style={styles.modalTextHeader}>พบจุดเสี่ยงใกล้ท่าน</Text>
             {listArea}
-            <Pressable
-              style={[styles.button, styles.buttonClose]}
-              onPress={() => closeModal()}>
-              <Text style={styles.textStyle}>❌ (
-               <TimeNotifications closeModal={closeModal}/> 
-              )</Text>
-              
-            </Pressable>
+            <View style={{flexDirection: 'row'}}>
+              <Pressable
+                style={[styles.button, styles.buttonLike]}
+                onPress={() => closeModal()}>
+                <Text style={styles.textStyle}>👍</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.buttonDislike]}
+                onPress={() => closeModal()}>
+                <Text style={styles.textStyle}>👎</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.button, styles.buttonClose]}
+                onPress={() => closeModal()}>
+                <Text style={styles.textStyle}>❌ (
+                <TimeNotifications autoCloseModal={autoCloseModal}/> 
+                )</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -120,7 +141,7 @@ export default function MapsView() {
         item.พิกัด.indexOf(" ")>=0?{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" ")))}:{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",")+1))}
       );
       if(pdis<=1500){
-        RiskArea.push({detail: item.รายละเอียด, distrance: pdis})
+        RiskArea.push({detail: item.รายละเอียด, distrance: pdis, id: item._id})
       }
     })
     console.log(RiskArea)
@@ -147,6 +168,7 @@ export default function MapsView() {
       {
         // For better logs, we set the accuracy to the most sensitive option
         accuracy: Location.Accuracy.BestForNavigation,
+        // distanceInterval: 1,
         enableHighAccuracy:true,
         timeInterval: 23000
       },
@@ -160,6 +182,8 @@ export default function MapsView() {
   // Stop location tracking in foreground
   const stopForegroundUpdate = () => {
     foregroundSubscription?.remove()
+    console.log("*************\nIgnoredNoti:",Ignored_Notification)
+    navigation.navigate("Notifications", {listArea: Ignored_Notification})
   }
 
   const startBackgroundUpdate = async () => {
@@ -287,6 +311,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 10,
     elevation: 2,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    margin: 2
+  },
+  buttonLike: {
+    backgroundColor: '#fff',
+  },
+  buttonDislike: {
+    backgroundColor: '#fff',
   },
   buttonOpen: {
     backgroundColor: '#F194FF',
