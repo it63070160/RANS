@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
-import db from '../database/firebbaseDB';
+import db from '../database/firebaseDB';
 import { collection, query, where, getDocs, updateDoc, doc} from "firebase/firestore";
 
 export default function NotificationsView({ navigation, route }) {
