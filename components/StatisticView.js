@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text, } from 'react-native';
-import db from '../database/firebbaseDB';
+import db from '../database/firebaseDB';
 import { collection, addDoc, getDocs } from "firebase/firestore";
 import {
     LineChart,
@@ -11,10 +11,11 @@ import {
   } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import { useEffect, useState } from 'react';
+import { graphColor } from '../constants/colors';
 
 import axios from 'axios'; // ดึง API
 
-const _ = require('lodash');
+const grp = require('lodash');
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
@@ -24,18 +25,23 @@ const chartConfig = {
     backgroundGradientTo: "#08130D",
     backgroundGradientToOpacity: 0.5,
     color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-    strokeWidth: 2, // optional, default 3
+    strokeWidth: 3, // optional, default 3
     barPercentage: 0.5,
     useShadowColorFromDataset: false // optional
   };
 
 export default function StatisticView() {
-    console.log('------------')
+
     let data = []
 
     let [listData, setListData] = useState([])
 
     let [listDataGroup, setListDataGroup] = useState([])
+
+    // แสดงกี่ลำดับแรก
+    let eventIndex = 6
+    // แสดงสีไหนก่อน
+    var indexColor = 0
     
     // getList()
 
@@ -44,12 +50,6 @@ export default function StatisticView() {
             // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
             //         .then(response=>{
             //           data = response.data.result.records
-            //           console.log('getList')
-            //           console.log('- ' + data[0]._id)
-            //           console.log('- ' + data[0].รายละเอียด) //แยกพัฒนาการ (ถ.พัฒนาการ - ศรีนครินทร์)
-            //           console.log('- ' + data[0].สำนักงานเขต) //สวนหลวง
-            //           console.log('- ' + data[0]["สน.พื้นที่"]) //คลองตัน,ประเวศ
-            //           console.log('- ' + data[0].พิกัด) //13.735236, 100.641140
             //         })
             //         .catch(error=>{
             //           console.error(error)
@@ -80,8 +80,8 @@ export default function StatisticView() {
 
         const col = collection(db, 'rans-database');
         const snapshot = await getDocs(col);
-        console.log("Getting Data From Firebase.")
-        // console.log(snapshot.docs[0].data())
+        // console.log("Getting Data From Firebase.")
+
         const d = snapshot.docs.map(doc => doc.data())
 
         setListData(d)
@@ -91,7 +91,7 @@ export default function StatisticView() {
     }
 
     function groupData(array, key){
-      let group = _.groupBy(array, key)
+      let group = grp.groupBy(array, key)
       let g = Object.entries(group);
       let resGroup = []
 
@@ -99,13 +99,43 @@ export default function StatisticView() {
         resGroup.push({
           name: g[i][0],
           quantity: g[i][1].length,
-          color: "#" + Math.floor(Math.random()*16777215).toString(16),
-          legendFontColor: "#000000",
-          legendFontSize: 15
         })
       }
 
-      return resGroup
+      return formatGraph(resGroup)
+    }
+
+    function formatGraph(dt){
+      let sortedData = dt.sort(
+        (p, n) => (p.quantity < n.quantity) ? 1 : (p.quantity > n.quantity) ? -1 : 0);
+      
+      let primaryGroup = []
+      let secondaryGroup = {
+        name: 'อื่นๆ (' + (sortedData.length - eventIndex) + ' เขต)', 
+        quantity: 0,
+        legendFontColor: "#000000",
+        legendFontSize: 15
+      }
+
+      for (let j = 0; j < sortedData.length; j++){
+        if (j < eventIndex){
+          primaryGroup.push(sortedData[j])
+          primaryGroup[j].color = graphColor[indexColor]
+          primaryGroup[j].legendFontColor = "#000000"
+          primaryGroup[j].legendFontSize = 15
+          if (++indexColor > (graphColor.length - 1)){
+            indexColor = 0
+          }
+        }
+        else {
+          secondaryGroup.quantity += sortedData[j].quantity
+        }
+      }
+
+      secondaryGroup.color = graphColor[indexColor == 0 ? indexColor + 1 : indexColor]
+      primaryGroup.push(secondaryGroup)
+
+      return primaryGroup
     }
 
     useEffect(()=>{
@@ -115,19 +145,16 @@ export default function StatisticView() {
 
     return (
         <View style={styles.container}>
-            {/* <Text style={styles.text}>Statistic</Text> */}
-            {/* {console.log(listData + "123")} */}
-            {/* {console.log(listData)} */}
-            <View style={{height: '50%', width: '50%'}}>
+            <View style={{height: '100%', width: '100%'}}>
               <PieChart
                 data={listDataGroup}
-                width={screenWidth}
-                height={screenHeight}
+                width={screenWidth-100}
+                height={screenHeight-200}
                 chartConfig={chartConfig}
                 accessor={"quantity"}
                 backgroundColor={"transparent"}
-                paddingLeft={"50"}
-                center={[50, 50]}
+                paddingLeft={"150"}
+                center={[0, 0]}
                 absolute
               />
             </View>
