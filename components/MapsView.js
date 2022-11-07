@@ -6,6 +6,11 @@ import * as TaskManager from "expo-task-manager" // จัดการ task ต�
 import * as Location from 'expo-location'; // track user location
 import { getPreciseDistance } from 'geolib'; // Calculate Distrance between 2 locations
 import TimeNotifications from './TimeNotifications';
+import { Ionicons } from '@expo/vector-icons';
+import db from '../database/firebaseDB';
+import { collection, query, where, getDocs, updateDoc, doc} from "firebase/firestore";
+import { Cache } from 'react-native-cache';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // *********************** Tracking User Location (Task Manager) ***********************
 const LOCATION_TASK_NAME = "LOCATION_TASK_NAME"
@@ -75,10 +80,47 @@ export default function MapsView({ navigation, route }) {
   }
 
   function autoCloseModal(){
+    let alreadyIgnore = false
     setModalVisible(false)
-    listRiskArea.map((item)=>{ // *** Problem : ยังเก็บตัวซ้ำ
-      setIgnored_Notification((prevIgnored_Notification)=>([...prevIgnored_Notification, item]))
+    listRiskArea.map((item)=>{
+      if(Ignored_Notification.length>0){
+        Ignored_Notification.map((Ignoreitem)=>{
+          if(Ignoreitem.id==item.id){
+            alreadyIgnore = true
+          }
+        })
+        if(alreadyIgnore == false){
+          setIgnored_Notification((prevIgnored_Notification)=>([...prevIgnored_Notification, item]))
+        }
+      }else{
+        setIgnored_Notification((prevIgnored_Notification)=>([...prevIgnored_Notification, item]))
+      }
     })
+  }
+
+  async function updateLike(index) {
+    const q = query(collection(db, "rans-database"), where("_id", "==", index));
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach(async (snapDoc) => {
+      // doc.data() is never undefined for query doc snapshots
+      await updateDoc(doc(db, "rans-database", snapDoc.id), {
+        like: snapDoc.data().like+1
+      }).then(
+        console.log("Like Updated")
+      )
+    });
+  }
+  async function updateDislike(index) {
+    const q = query(collection(db, "rans-database"), where("_id", "==", index));
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach(async (snapDoc) => {
+      // doc.data() is never undefined for query doc snapshots
+      await updateDoc(doc(db, "rans-database", snapDoc.id), {
+        dislike: snapDoc.data().dislike+1
+      }).then(
+        console.log("Dislike Updated")
+      )
+    });
   }
 
   function RiskNotification(){
@@ -105,12 +147,12 @@ export default function MapsView({ navigation, route }) {
             <View style={{flexDirection: 'row'}}>
               <Pressable
                 style={[styles.button, styles.buttonLike]}
-                onPress={() => closeModal()}>
+                onPress={() => {updateLike();closeModal()}}>
                 <Text style={styles.textStyle}>👍</Text>
               </Pressable>
               <Pressable
                 style={[styles.button, styles.buttonDislike]}
-                onPress={() => closeModal()}>
+                onPress={() => {updateDislike();closeModal()}}>
                 <Text style={styles.textStyle}>👎</Text>
               </Pressable>
               <Pressable
@@ -247,11 +289,34 @@ export default function MapsView({ navigation, route }) {
     requestPermissions();
   }, [])
 
+  // *********************** Cache ***********************
+  const [alreadyLike, setalreadyLike] = useState([]);
+  const [alreadyDisLike, setalreadyDisLike] = useState([]);
+
+  const cache = new Cache({
+    namespace: "RANS",
+    policy: {
+        maxEntries: 50000, // if unspecified, it can have unlimited entries
+        stdTTL: 0 // the standard ttl as number in seconds, default: 0 (unlimited)
+    },
+    backend: AsyncStorage
+  });
+
+  async function GetCache(){
+    setalreadyLike(await cache.get('like'))
+    setalreadyDisLike(await cache.get('dislike'))
+  }
+
+  useEffect(()=>{
+    GetCache()
+  },[])
+
+
   return (
     <View style={styles.container}>
       <View style={{position: 'absolute', bottom:10, right: 10}}>
         <TouchableOpacity style={styles.bottomButton}>
-          <Text style={{fontSize: 20}}>➕</Text>
+          <Ionicons name="add" size={24} color="black" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomButton} onPress={()=>{AlertMe?stopForegroundUpdate():startForegroundUpdate();setAlertMe(!AlertMe)}}>
           <Text style={{fontSize: 20}}>{AlertMe?'Stop':'Start'}</Text>
