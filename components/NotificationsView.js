@@ -44,10 +44,6 @@ export default function NotificationsView({ navigation, route }) {
     });
   }
 
-  useEffect(()=>{
-      console.log(listArea)
-  }, [])
-
   return (
     <ScrollView style={styles.container}>
       {listArea.length>0?listArea.map((item, index)=>(
