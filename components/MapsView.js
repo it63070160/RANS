@@ -314,7 +314,7 @@ export default function MapsView({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <View style={{position: 'absolute', bottom:10, right: 10}}>
+      <View style={{position: 'absolute', bottom:10, right: 10, zIndex: 3}}>
         <TouchableOpacity style={styles.bottomButton}>
           <Ionicons name="add" size={24} color="black" />
         </TouchableOpacity>
@@ -339,6 +339,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
+    zIndex: 2,
   },
   map: {
     width: '100%',
@@ -355,7 +356,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
     backgroundColor: '#ffffff',
-    zIndex: 1,
   },
   modalView: {
     margin: 20,
