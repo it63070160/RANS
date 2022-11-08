@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput, Modal, Pressable } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { SearchBar } from 'react-native-elements';
 import { AntDesign } from '@expo/vector-icons';
 import { Cache } from "react-native-cache";
@@ -41,11 +41,12 @@ export default function ManageRisk({ navigation, route }) {
     const querySnapshot = await getDocs(q);
     const d = querySnapshot.docs.map(doc => doc.data())
     setData(d)
-    const startPage = d.filter((item)=>item._id>=start && item._id<start+5)
-    setPageData(startPage)
-    if(start==1){
-      setStart(start+5)
-    }
+    // const startPage = d.filter((item)=>item._id>=start && item._id<start+5)
+    setPageData(d)
+    // setPageData(startPage)
+    // if(start==1){
+    //   setStart(start+5)
+    // }
   }
 
   async function GetCache(){
@@ -216,6 +217,16 @@ export default function ManageRisk({ navigation, route }) {
 
   const onChangeSearch = query => setSearch(query);
 
+  function Search(){
+    const startPage = [] 
+    data.map((item)=>{
+      if(item.รายละเอียด.indexOf(search)>=0 || item.สำนักงานเขต.indexOf(search)>=0){
+        startPage.push(item)
+      }
+    })
+    setPageData(startPage)
+  }
+
   const cache = new Cache({
     namespace: "RANS",
     policy: {
@@ -231,7 +242,7 @@ export default function ManageRisk({ navigation, route }) {
   }, [])
 
   return (
-    <ScrollView style={[styles.container, {backgroundColor:detailVisible?'rgba(0,0,0,0.3)':'rgba(255,255,255,1)'}]}>
+    <ScrollView stickyHeaderIndices={[1]} style={[styles.container, {backgroundColor:detailVisible?'rgba(0,0,0,0.3)':'rgba(255,255,255,1)'}]}>
       <RisksDetail/>
       <SearchBar
         placeholder="Search"
@@ -240,7 +251,10 @@ export default function ManageRisk({ navigation, route }) {
         onChangeText={onChangeSearch}
         value={search}
       />
-      {pageData.map((item, index)=>(
+      <TouchableOpacity style={styles.button} onPress={Search}>
+        <Text>Here</Text>
+      </TouchableOpacity>
+      {(pageData.length)>0?pageData.map((item, index)=>(
         <View style={[styles.riskContainer, {opacity:detailVisible?0.3:1}]} key={index}>
           <Text style={styles.riskTitle}>{item.รายละเอียด}</Text>
           <View style={styles.infoButtonContainer}>
@@ -257,8 +271,9 @@ export default function ManageRisk({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
-      ))}
-      <View style={styles.pageNavContainer}>
+      )):<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>}
+      
+      {/* <View style={styles.pageNavContainer}>
         <TouchableOpacity style={[styles.nav, {opacity:detailVisible?0.3:1}]} onPress={PreviousPage}>
           <Text>{'<'}</Text>
         </TouchableOpacity>
@@ -266,7 +281,7 @@ export default function ManageRisk({ navigation, route }) {
         <TouchableOpacity style={[styles.nav, {opacity:detailVisible?0.3:1}]} onPress={NextPage}>
           <Text>{'>'}</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ScrollView>
   );
 }
