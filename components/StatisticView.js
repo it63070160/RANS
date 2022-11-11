@@ -11,7 +11,8 @@ import { collection, addDoc, getDocs } from "firebase/firestore";
 //   } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import { useEffect, useState } from 'react';
-import { BarChart } from 'react-native-animated-charts';
+// https://npm.io/package/react-native-animated-charts
+import BarChart from './BarChart';
 
 import axios from 'axios'; // ดึง API
 
@@ -19,17 +20,17 @@ const grp = require('lodash');
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
-const chartConfig = {
-  backgroundColor: "#fff",
-  backgroundGradientFrom: "#fff",
-  backgroundGradientTo: "#fff",
-  decimalPlaces: 0, // optional, defaults to 2dp
-  color: (opacity = 1) => `rgba(41, 120, 59, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(120, 120, 59, ${opacity})`,
-  strokeWidth: 2, // optional, default 3
-  barPercentage: 0.9,
-  useShadowColorFromDataset: false // optional
-};
+// const chartConfig = {
+//   backgroundColor: "#fff",
+//   backgroundGradientFrom: "#fff",
+//   backgroundGradientTo: "#fff",
+//   decimalPlaces: 0, // optional, defaults to 2dp
+//   color: (opacity = 1) => `rgba(41, 120, 59, ${opacity})`,
+//   labelColor: (opacity = 1) => `rgba(120, 120, 59, ${opacity})`,
+//   strokeWidth: 2, // optional, default 3
+//   barPercentage: 0.9,
+//   useShadowColorFromDataset: false // optional
+// };
 
 export default function StatisticView() {
 
@@ -39,11 +40,14 @@ export default function StatisticView() {
 
     let [listDataGroup, setListDataGroup] = useState([])
 
-    let [listDataGroupSec, setListDataGroupSec] = useState([])
+    let [listDataGroupSort, setListDataGroupSort] = useState([])
 
-    let [labels, setLabels] = useState([])
+    // let [labels, setLabels] = useState([])
 
-    let [dataY, setDataY] = useState([])
+    // let [dataY, setDataY] = useState([])
+
+    // show {n} elements first
+    const showTop = 5
     
     async function getList(){
         try{
@@ -86,41 +90,22 @@ export default function StatisticView() {
 
         setListData(d)
 
-        // setListDataGroup(groupData(d, 'สำนักงานเขต'))
+        // groupData(d, 'สำนักงานเขต')
 
         formatGraph(groupData(d, 'สำนักงานเขต'))
-
     }
 
     function groupData(array, key){
       let group = grp.groupBy(array, key)
       let g = Object.entries(group);
 
-      // console.log(g[0][0])
-      // let resGroup = []
-
-      // for (let i=0; i<g.length; i++){
-      //   resGroup.push({
-      //     name: g[i][0],
-      //     quantity: g[i][1].length,
-      //   })
-
-      // }
-
       let resGroup = []
 
       for (let j=0; j<g.length; j++){
           resGroup.push({label: g[j][0], dataY: g[j][1].length})
       }
-        
-        // setLabels(lb)
-        // setDataY(dtY)
 
       setListDataGroup(resGroup)
-
-      // console.lolg(listDataGroup)
-
-      // return formatGraph(resGroup)
 
       return resGroup
     }
@@ -131,25 +116,32 @@ export default function StatisticView() {
 
         let resGroupSec = []
 
-        let lb = []
-        let dtY = []
+        // let lb = []
+        // let dtY = []
 
         for (let j=0; j<sortedData.length; j++){
-          if (j < 5){
-            lb.push(sortedData[j].label + "\n (" + sortedData[j].dataY + " จุด)")
-            dtY.push(sortedData[j].dataY)
-          }
-          else {
-            resGroupSec.push({label: sortedData[j].label, dataY: sortedData[j].dataY})
-          }
+          resGroupSec.push({label: sortedData[j].label, dataY: sortedData[j].dataY})
+          // if (j < showTop){
+          //   lb.push(sortedData[j].label + "\n (" + sortedData[j].dataY + " จุด)")
+          //   dtY.push(sortedData[j].dataY)
+          // }
         }
 
-        setLabels(lb)
-        setDataY(dtY)
+        // setLabels(lb)
+        // setDataY(dtY)
 
-        setListDataGroupSec(resGroupSec)
+        setListDataGroupSort(resGroupSec)
+    }
 
-      // return fd;
+    function generateList(value, index){
+      if (index >= showTop){
+        return <View style={styles.listBox} key={index+6}>
+          <Text style={{width: '10%', textAlign: 'center'}}>{index + 1}</Text>
+          <View style={{width: '1%', borderRightColor: 'black', borderRightWidth: 1, height: '100%'}}></View>
+          <Text style={{width: '60%', paddingLeft: '5%'}}>{value.label}</Text>
+          <Text style={{width: '20%', textAlign: 'center'}}>{value.dataY} จุด</Text>
+        </View>
+      }
     }
 
     useEffect(()=>{
@@ -157,44 +149,22 @@ export default function StatisticView() {
       getData();
     }, [])
 
-    function recalculate(){
-      let values = Array.from({length: 5}, () => Math.round(10*Math.random() * 5)/10)
-      setDataY(values)
-      setLabels(values.map(v=>(Math.round(v*10)/10)+'k'))
-    }
-
     return (
         <View style={styles.container}>
           {(listDataGroup.length != 0)?
           <View style={{width: '100%', height: '100%'}}> 
             <View style={styles.graphContainer}>
               <Text style={styles.graphHeader}>5 อันดับเขตที่มีจำนวนจุดเสี่ยงสูงที่สุดในกรุงเทพมหานคร</Text>
-              {/* <BarChart
-                style={styles.graphStyle}
-                data={listDataGroup}
-                width={screenWidth-20}
-                height={screenHeight*0.2}
-                chartConfig={chartConfig}
-                verticalLabelRotation={0}
-                yAxisSuffix=" จุด"
-                fromZero={true}
-                withInnerLines={true}
-              /> */}
               <BarChart 
-                labels={labels} 
-                dataY={dataY} 
+                labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)} 
+                dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)} 
                 color={'#a7bd4f'} 
                 height={screenHeight * .28}
                 containerStyles={styles.barChart}
               />
             </View>
             <ScrollView style={{width: '100%', height: '100%'}}>
-              {listDataGroupSec.map((value, index) => <View style={styles.listBox} key={index+6}>
-                <Text style={{width: '10%', textAlign: 'center'}}>{index + 6}</Text>
-                <View style={{width: '1%', borderRightColor: 'black', borderRightWidth: 1, height: '100%'}}></View>
-                <Text style={{width: '60%', paddingLeft: '5%'}}>{value.label}</Text>
-                <Text style={{width: '20%', textAlign: 'center'}}>{value.dataY} จุด</Text>
-              </View>)}
+              {listDataGroupSort.map(generateList)}
             </ScrollView>
             <View>
               <TouchableOpacity onPress={() => getData()} style={styles.button}>
@@ -204,8 +174,6 @@ export default function StatisticView() {
             </View>
             :<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>
             }
-            
-            
         </View>
     );
 }
