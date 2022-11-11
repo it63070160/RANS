@@ -86,7 +86,7 @@ export default class BarChart extends Component {
                     }
                 ]}
             >
-                {this.state.dataY.map((v,i)=><AnimatedBar key={"animatedBar-"+Math.random()*100} label={this.state.labels[i]} prevValue={this.state.prevDataY?this.state.prevDataY[i]:false} value={v} margin={this.state.margin} color={this.state.color} />)}
+                {this.state.dataY.map((v,i)=><AnimatedBar key={"animatedBar-"+Math.random()*100} label={this.state.labels[i]} prevValue={this.state.prevDataY?this.state.prevDataY[i]:false} value={v} margin={this.state.margin} color={this.state.color[i]} />)}
             </View>
         )
     }

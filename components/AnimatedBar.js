@@ -8,22 +8,16 @@ let animation
 
 export default class AnimatedBar extends Component {
 
-
-
     constructor(props) {
-        
         super(props);
-
-
         //console.log("CONSTRUCT")
         this.updateValue()
-        
 
     }
+
     updateValue = ()=>{
         
         animation = new Animated.Value(this.props.prevValue?this.props.prevValue:20)
-
 
         Animated.sequence([
             Animated.delay(Math.round(Math.random()*400)),
@@ -45,8 +39,8 @@ export default class AnimatedBar extends Component {
         }
         
     }
+
     componentDidMount = ()=>{
-        
 
     }
 

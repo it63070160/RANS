@@ -13,6 +13,7 @@ import { Dimensions } from "react-native";
 import { useEffect, useState } from 'react';
 // https://npm.io/package/react-native-animated-charts
 import BarChart from './BarChart';
+import { graphColor } from '../constants/colors'
 
 import axios from 'axios'; // ดึง API
 
@@ -154,11 +155,11 @@ export default function StatisticView() {
           {(listDataGroup.length != 0)?
           <View style={{width: '100%', height: '100%'}}> 
             <View style={styles.graphContainer}>
-              <Text style={styles.graphHeader}>5 อันดับเขตที่มีจำนวนจุดเสี่ยงสูงที่สุดในกรุงเทพมหานคร</Text>
+              <Text style={styles.graphHeader}>{showTop} อันดับเขตที่มีจำนวนจุดเสี่ยงสูงที่สุดในกรุงเทพมหานคร</Text>
               <BarChart 
                 labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)} 
                 dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)} 
-                color={'#a7bd4f'} 
+                color={graphColor} 
                 height={screenHeight * .28}
                 containerStyles={styles.barChart}
               />
@@ -217,13 +218,13 @@ const styles = StyleSheet.create({
     barChart: {
         backgroundColor:"transparent",
         height:screenHeight*.28,
-        width:screenWidth,
+        width: '100%',
         position: 'absolute',
         bottom: '3%',
         borderBottomColor: 'black',
         borderBottomWidth: 2,
         alignItems: 'center',
-
+        alignSelf: 'center',
     },
     listBox: {
       width: '90%',
