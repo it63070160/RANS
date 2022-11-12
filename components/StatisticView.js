@@ -49,7 +49,7 @@ export default function StatisticView() {
 
     // show {n} elements first
     const showTop = 5
-    
+
     async function getList(){
         try{
             // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
@@ -153,21 +153,21 @@ export default function StatisticView() {
     return (
         <View style={styles.container}>
           {(listDataGroup.length != 0)?
-          <View style={{width: '100%', height: '100%'}}> 
+          <View style={{width: '100%', height: '100%'}}>
             <View style={styles.graphContainer}>
               <Text style={styles.graphHeader}>{showTop} อันดับเขตที่มีจำนวนจุดเสี่ยงสูงที่สุดในกรุงเทพมหานคร</Text>
-              <BarChart 
-                labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)} 
-                dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)} 
-                color={graphColor} 
+              <BarChart
+                labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)}
+                dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)}
+                color={graphColor}
                 height={screenHeight * .28}
                 containerStyles={styles.barChart}
               />
             </View>
-            <ScrollView style={{width: '100%', height: '100%'}}>
+            <ScrollView style={styles.bgScroll}>
               {listDataGroupSort.map(generateList)}
             </ScrollView>
-            <View>
+            <View style={{backgroundColor: '#233212'}}>
               <TouchableOpacity onPress={() => getData()} style={styles.button}>
                   <Text style={styles.buttonText}>Refresh</Text>
               </TouchableOpacity>
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
       alignItems: 'center',
     },
     graphContainer: {
-      backgroundColor: '#fff',
+      backgroundColor: '#A1887F',
       width: '100%',
       height: screenHeight*0.4,
     },
@@ -197,23 +197,31 @@ const styles = StyleSheet.create({
       bottom: 0,
     },
     graphHeader: {
-      fontSize: 20,
+      marginTop: 20,
+      fontSize: 25,
       textAlign: 'center',
     },
+    bgScroll: {
+      width: "100%",
+      height: "100%",
+      backgroundColor: "#D7CCC8"
+    },
     button: {
-      backgroundColor:"#a7bd4f",
-      width:screenWidth*.4,
-      height:40, 
+      backgroundColor:"#7CB342",
+      width:screenWidth*.3,
+      // height:40,
       borderRadius:30,
       alignItems:"center",
       justifyContent:"center",
       alignSelf: 'flex-end',
-      marginBottom: 20,
-      marginRight: 30
+      marginBottom: 30,
+      marginTop: 30,
+      marginRight: 30,
+      padding: 20
     },
     buttonText: {
         color:"white",
-        fontSize:18
+        fontSize: 25
     },
     barChart: {
         backgroundColor:"transparent",
