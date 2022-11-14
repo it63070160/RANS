@@ -1,1 +1,0 @@
-export const secretKey = "RANS-app";
