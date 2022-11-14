@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { SearchBar } from 'react-native-elements';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
@@ -23,7 +23,10 @@ export default function ManageRisk({ navigation, route }) {
   const [alreadyDisLike, setalreadyDisLike] = useState([]); // เก็บจุดเสี่ยงที่ผู้ใช้กดไม่ถูกใจแล้ว
   const [searching, setSearching] = useState(false); // boolean เก็บว่าผู้ใช้กำลังค้นหาหรือไม่
   const [addPress, setAddPress] = useState(false); // boolean ผู้ใช้กดปุ่ม add บน Header หรือไม่
+  const [editPress, setEditPress] = useState(false); // boolean ผู้ใช้กดปุ่ม edit 
+  const [editText, setEditText] = useState("");
   const [detailData, setDetailData] = useState(); // เก็บข้อมูลจุดเสี่ยงเมื่อผู้ใช้กดปุ่ม info
+  const [refresh, setRefresh] = useState(true);
 
   // function GetPosition ดึงข้อมูลจุดเสี่ยง 100 จุดจาก API
   async function GetPosition(){
@@ -56,6 +59,17 @@ export default function ManageRisk({ navigation, route }) {
     if(start==1){
       setStart(start+5)
     }
+    setRefresh(false)
+  }
+
+  async function refreshthis(){
+    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
+    const querySnapshot = await getDocs(q);
+    const d = querySnapshot.docs.map(doc => doc.data())
+    setData(d)
+    const startPage = d.filter((item)=>item._id>=1 && item._id<6) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+    setPageData(startPage) // เก็บที่ filter ออกมา
+    setRefresh(false)
   }
 
   // function GetDataByID ดึงข้อมูลจาก Firebase Database ที่มี id ตาม parameter
@@ -69,6 +83,7 @@ export default function ManageRisk({ navigation, route }) {
     }else{
       setDetailData({data: d[0], userOwn: false}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
     }
+    setEditText(d[0].รายละเอียด)
   }
 
   // รับค่าจาก Cache ที่เก็บในตัวเครื่องของผู้ใช้
@@ -140,7 +155,6 @@ export default function ManageRisk({ navigation, route }) {
 
   // Component Function แสดงรายละเอียดของจุดเสี่ยง
   function RisksDetail(){
-    const editPress = false;
     if(detailData){
       return (
         <Modal
@@ -155,7 +169,11 @@ export default function ManageRisk({ navigation, route }) {
             <View style={styles.modalView}>
               <View style={styles.modalCloseButton}>
                 {detailData.userOwn?
-                <TouchableOpacity style={{marginRight: 10}} onPress={editDetail}>
+                editPress?
+                <TouchableOpacity style={{marginRight: 10}} onPress={()=>{setEditPress(false);editDetail(detailData.data._id)}}>
+                  <MaterialIcons name="check" size={24} color="black" />
+                </TouchableOpacity>
+                :<TouchableOpacity style={{marginRight: 10}} onPress={()=>setEditPress(true)}>
                   <MaterialIcons name="edit" size={24} color="black" />
                 </TouchableOpacity>:null}
                 <TouchableOpacity onPress={closeDetail}>
@@ -165,10 +183,17 @@ export default function ManageRisk({ navigation, route }) {
               <Text style={styles.modalTextHeader}>รายละเอียด</Text>
               {detailData.length!=0?
               <View key={detailData.data._id}>
-                <Text>
-                  <Text><Text style={{ fontWeight: 'bold' }}>รายละเอียด</Text>: {detailData.data.รายละเอียด}{"\n"}</Text>
-                  <Text><Text style={{ fontWeight: 'bold' }}>สำนักงานเขต</Text>: {detailData.data.สำนักงานเขต}{"\n"}</Text>
-                </Text>
+                <View>
+                  {editPress?
+                  <View style={{flexDirection:'row', marginBottom: 10}}>
+                    <Text style={{ fontWeight: 'bold' }}>รายละเอียด: </Text>
+                    <TextInput style={{ borderBottomWidth: 1, marginTop: -5 }} defaultValue={editText} onEndEditing={e=>setEditText(e.nativeEvent.text)} multiline/>
+                  </View>
+                  :<View style={{marginBottom: 15}}>
+                    <Text><Text style={{ fontWeight: 'bold'}}>รายละเอียด</Text>: {editText}</Text>
+                  </View>}
+                  <Text><Text style={{ fontWeight: 'bold' }}>สำนักงานเขต</Text>: {detailData.data.สำนักงานเขต}</Text>
+                </View>
                 <View style={styles.modalBottomContainer}>
                   <Text style={[styles.textStyle, {color:alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==detailData.data._id).length>0?'#6BF38B':'black'}]}>
                     <AntDesign name="like1" size={24} color={alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==detailData.data._id).length>0?'#6BF38B':'black'} />
@@ -194,8 +219,25 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   // แก้ไข Detail
-  function editDetail(){
-    
+  async function editDetail(id){
+    closeDetail()
+    setRefresh(true)
+    const q = query(collection(db, "rans-database"), where("_id", "==", id)); // หาตัวที่ ID ตรงกับ Parameter
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach(async (snapDoc) => {
+      await updateDoc(doc(db, "rans-database", snapDoc.id), {
+        รายละเอียด: editText
+      }).then(
+        console.log("Detail Updated")
+      )
+    });
+    if(searching){
+      setPageCount(1)
+      setSearching(false)
+      setSearchStart(0)
+      setSearch("")
+    }
+    refreshthis()
   }
 
   // ปิด Detail
@@ -287,7 +329,7 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   // หากมีการพิมพ์ในช่องค้นหาจะ setstate Search
-  const onChangeSearch = query => setSearch(query);
+  const onChangeSearch = query => setSearch(query)
 
   // เมื่อกดปุ่มล้างการค้นหา
   function clearSearch(){
@@ -295,6 +337,7 @@ export default function ManageRisk({ navigation, route }) {
     setPageData(startPage)
     setPageCount(Math.floor((start)/5))
     setSearching(false)
+    setSearchStart(0)
   }
 
   // เมื่อกดปุ่มค้นหา
@@ -367,12 +410,8 @@ export default function ManageRisk({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
-      // GetData()
       GetCache()
       return () => {
-        // setPageData([])
-        // setSearch("")
-        // setSearching(false)
       };
     }, [])
   );
@@ -392,11 +431,8 @@ export default function ManageRisk({ navigation, route }) {
           onSubmitEditing={Search}
           keyboardType={"web-search"}
         />
-        {/* <TouchableOpacity style={[styles.searchButton, {opacity:detailVisible?0.3:1}]} onPress={Search}>
-          <AntDesign name="search1" size={24} color="black" />
-        </TouchableOpacity> */}
       </View>
-      {(pageData.length)>0?
+      {!refresh?
       pageData.map((item, index)=>(
       <View style={[styles.riskContainer, {opacity:detailVisible?0.3:1}]} key={index}>
         <Text style={styles.riskTitle}>{item.รายละเอียด}</Text>

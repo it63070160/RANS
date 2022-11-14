@@ -1,37 +1,18 @@
 import { StyleSheet, View, Text, ActivityIndicator , ScrollView, TouchableOpacity} from 'react-native';
 import db from '../database/firebaseDB';
 import { collection, addDoc, getDocs } from "firebase/firestore";
-// import {
-//     LineChart,
-//     BarChart,
-//     PieChart,
-//     ProgressChart,
-//     ContributionGraph,
-//     StackedBarChart
-//   } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import { useEffect, useState } from 'react';
 // https://npm.io/package/react-native-animated-charts
 import BarChart from '../components/BarChart';
 import { graphColor } from '../constants/colors'
+import { groupBy } from "lodash";
 
 import axios from 'axios'; // ดึง API
 
-const grp = require('lodash');
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
-// const chartConfig = {
-//   backgroundColor: "#fff",
-//   backgroundGradientFrom: "#fff",
-//   backgroundGradientTo: "#fff",
-//   decimalPlaces: 0, // optional, defaults to 2dp
-//   color: (opacity = 1) => `rgba(41, 120, 59, ${opacity})`,
-//   labelColor: (opacity = 1) => `rgba(120, 120, 59, ${opacity})`,
-//   strokeWidth: 2, // optional, default 3
-//   barPercentage: 0.9,
-//   useShadowColorFromDataset: false // optional
-// };
 
 export default function StatisticView() {
 
@@ -49,19 +30,19 @@ export default function StatisticView() {
 
     // show {n} elements first
     const showTop = 5
-    
+
     async function getList(){
         try{
-            await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?&resource_id=6cc7a43f-52b3-4381-9a8f-2b8a35c3174a')
-                    .then(response=>{
-                      data = response.data.result.records
-                    })
-                    .catch(error=>{
-                      console.error(error)
-                    })
+            // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
+            //         .then(response=>{
+            //           data = response.data.result.records
+            //         })
+            //         .catch(error=>{
+            //           console.error(error)
+            //         })
             // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
-            // const customData = require('../assets/RiskArea.json')
-            // data = customData.result.records
+            const customData = require('../assets/RiskArea.json')
+            data = customData.result.records
             // เอาข้อมูลจาก api ใส่ firebase
             let docRef;
             for (let i=0; i<data.length;i++){
@@ -94,10 +75,11 @@ export default function StatisticView() {
         // groupData(d, 'สำนักงานเขต')
 
         formatGraph(groupData(d, 'สำนักงานเขต'))
+
     }
 
     function groupData(array, key){
-      let group = grp.groupBy(array, key)
+      let group = groupBy(array, key)
       let g = Object.entries(group);
 
       let resGroup = []
@@ -153,21 +135,21 @@ export default function StatisticView() {
     return (
         <View style={styles.container}>
           {(listDataGroup.length != 0)?
-          <View style={{width: '100%', height: '100%'}}> 
+          <View style={{width: '100%', height: '100%'}}>
             <View style={styles.graphContainer}>
               <Text style={styles.graphHeader}>{showTop} อันดับเขตที่มีจำนวนจุดเสี่ยงสูงที่สุดในกรุงเทพมหานคร</Text>
-              <BarChart 
-                labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)} 
-                dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)} 
-                color={graphColor} 
+              <BarChart
+                labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)}
+                dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)}
+                color={graphColor}
                 height={screenHeight * .28}
                 containerStyles={styles.barChart}
               />
             </View>
-            <ScrollView style={{width: '100%', height: '100%'}}>
+            <ScrollView style={styles.bgScroll}>
               {listDataGroupSort.map(generateList)}
             </ScrollView>
-            <View>
+            <View style={{backgroundColor: '#233212'}}>
               <TouchableOpacity onPress={() => getData()} style={styles.button}>
                   <Text style={styles.buttonText}>Refresh</Text>
               </TouchableOpacity>
@@ -188,7 +170,7 @@ const styles = StyleSheet.create({
       alignItems: 'center',
     },
     graphContainer: {
-      backgroundColor: '#fff',
+      backgroundColor: '#D7CCC8',
       width: '100%',
       height: screenHeight*0.4,
     },
@@ -197,23 +179,31 @@ const styles = StyleSheet.create({
       bottom: 0,
     },
     graphHeader: {
-      fontSize: 20,
+      marginTop: 20,
+      fontSize: 25,
       textAlign: 'center',
     },
+    bgScroll: {
+      width: "100%",
+      height: "100%",
+      backgroundColor: "#D7CCC8"
+    },
     button: {
-      backgroundColor:"#a7bd4f",
-      width:screenWidth*.4,
-      height:40, 
+      backgroundColor:"#7CB342",
+      width:screenWidth*.3,
+      // height:40,
       borderRadius:30,
       alignItems:"center",
       justifyContent:"center",
       alignSelf: 'flex-end',
-      marginBottom: 20,
-      marginRight: 30
+      marginBottom: 30,
+      marginTop: 30,
+      marginRight: 30,
+      padding: 20
     },
     buttonText: {
         color:"white",
-        fontSize:18
+        fontSize: 25
     },
     barChart: {
         backgroundColor:"transparent",

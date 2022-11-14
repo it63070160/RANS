@@ -15,7 +15,8 @@ import CustomHeaderButton from '../components/CustomHeaderButton'; // header but
 import TimeNotifications from '../components/TimeNotifications'; // count time
 import AddRisk from './AddRisk'; // Add Risk View
 import { useFocusEffect } from "@react-navigation/native";
-import NotificationsView from './NotificationsView';
+import { encrypt } from '../components/Encryption';
+import DeviceInfo from 'react-native-device-info';
 
 // *********************** Tracking User Location (Task Manager) ***********************
 const LOCATION_TASK_NAME = "LOCATION_TASK_NAME"
@@ -43,6 +44,7 @@ export default function MapsView({ navigation, route }) {
   const [data, setData] = useState([]); // data เก็บข้อมูลจุดเสี่ยง
   const [position, setPosition] = useState({latitude: 13.736717, longitude: 100.523186}) // position เก็บข้อมูลละติจูดและลองจิจูดของผู้ใช้ **Need Default Value** {latitude: number, longitude: number}
   const [listRiskArea, setlistRiskArea] = useState([]) // Calculate Distance between two locations
+  const [deviceId, setDeviceId] = useState("")
   // *********************** Notifications ***********************
   const [modalVisible, setModalVisible] = useState(false);
   const [AlertMe, setAlertMe] = useState(false);
@@ -79,6 +81,7 @@ export default function MapsView({ navigation, route }) {
 
   useEffect(()=>{
     GetData();
+    setDeviceId(DeviceInfo.getUniqueId());
   }, [])
 
   // เมื่อผู้ใช้ปิด Notification
@@ -229,6 +232,7 @@ export default function MapsView({ navigation, route }) {
   useFocusEffect(
     useCallback(() => {
       CheckFakeRisk()
+      console.log(deviceId)
       return () => {
         foregroundSubscription?.remove()
         setAlertMe(false);
