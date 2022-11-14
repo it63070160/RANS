@@ -2,10 +2,10 @@ import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 // MapsView Screen
-import MapsView from './components/MapsView';
-import NotificationsView from './components/NotificationsView';
-import StatisticView from './components/StatisticView';
-import ManageRisk from './components/ManageRisk';
+import MapsView from './views/MapsView';
+import NotificationsView from './views/NotificationsView';
+import StatisticView from './views/StatisticView';
+import ManageRisk from './views/ManageRisk';
 
 const Drawer = createDrawerNavigator();
 
