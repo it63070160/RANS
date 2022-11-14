@@ -1,37 +1,18 @@
 import { StyleSheet, View, Text, ActivityIndicator , ScrollView, TouchableOpacity} from 'react-native';
 import db from '../database/firebaseDB';
 import { collection, addDoc, getDocs } from "firebase/firestore";
-// import {
-//     LineChart,
-//     BarChart,
-//     PieChart,
-//     ProgressChart,
-//     ContributionGraph,
-//     StackedBarChart
-//   } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import { useEffect, useState } from 'react';
 // https://npm.io/package/react-native-animated-charts
 import BarChart from './BarChart';
 import { graphColor } from '../constants/colors'
+import { groupBy } from "lodash";
 
 import axios from 'axios'; // ดึง API
 
-const grp = require('lodash');
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
-// const chartConfig = {
-//   backgroundColor: "#fff",
-//   backgroundGradientFrom: "#fff",
-//   backgroundGradientTo: "#fff",
-//   decimalPlaces: 0, // optional, defaults to 2dp
-//   color: (opacity = 1) => `rgba(41, 120, 59, ${opacity})`,
-//   labelColor: (opacity = 1) => `rgba(120, 120, 59, ${opacity})`,
-//   strokeWidth: 2, // optional, default 3
-//   barPercentage: 0.9,
-//   useShadowColorFromDataset: false // optional
-// };
 
 export default function StatisticView() {
 
@@ -94,10 +75,11 @@ export default function StatisticView() {
         // groupData(d, 'สำนักงานเขต')
 
         formatGraph(groupData(d, 'สำนักงานเขต'))
+
     }
 
     function groupData(array, key){
-      let group = grp.groupBy(array, key)
+      let group = groupBy(array, key)
       let g = Object.entries(group);
 
       let resGroup = []
@@ -188,7 +170,7 @@ const styles = StyleSheet.create({
       alignItems: 'center',
     },
     graphContainer: {
-      backgroundColor: '#A1887F',
+      backgroundColor: '#D7CCC8',
       width: '100%',
       height: screenHeight*0.4,
     },
