@@ -10,6 +10,9 @@ import { HeaderButtons, Item } from "react-navigation-header-buttons";
 import CustomHeaderButton from '../components/CustomHeaderButton';
 import AddRisk from './AddRisk';
 import { useFocusEffect } from '@react-navigation/native';
+import { encrypt, decrypt } from '../components/Encryption';
+import * as Device from 'expo-device';
+import * as Application from 'expo-application';
 
 export default function ManageRisk({ navigation, route }) {
   const [data, setData] = useState([]); // data เก็บข้อมูลจุดเสี่ยง
@@ -27,6 +30,7 @@ export default function ManageRisk({ navigation, route }) {
   const [editText, setEditText] = useState("");
   const [detailData, setDetailData] = useState(); // เก็บข้อมูลจุดเสี่ยงเมื่อผู้ใช้กดปุ่ม info
   const [refresh, setRefresh] = useState(true);
+  const [deviceId, setDeviceId] = useState("")
 
   // function GetPosition ดึงข้อมูลจุดเสี่ยง 100 จุดจาก API
   async function GetPosition(){
@@ -62,6 +66,15 @@ export default function ManageRisk({ navigation, route }) {
     setRefresh(false)
   }
 
+  async function GetDeviceID() {
+    if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
+      setDeviceId(encrypt(await Application.getIosIdForVendorAsync()))
+    }
+    else{
+      setDeviceId(encrypt(Application.androidId))
+    }
+  }
+
   async function refreshthis(){
     const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
     const querySnapshot = await getDocs(q);
@@ -77,8 +90,7 @@ export default function ManageRisk({ navigation, route }) {
     const q = query(collection(db, "rans-database"), where("_id", '==', id));
     const querySnapshot = await getDocs(q);
     const d = querySnapshot.docs.map(doc => doc.data())
-    const userRiskID = await cache.get('createID')
-    if(userRiskID.indexOf(id)>=0){
+    if(decrypt(d[0].owner)==decrypt(deviceId)){
       setDetailData({data: d[0], userOwn: true}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
     }else{
       setDetailData({data: d[0], userOwn: false}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
@@ -406,6 +418,7 @@ export default function ManageRisk({ navigation, route }) {
 
   useEffect(() =>{
     GetData()
+    GetDeviceID()
   }, [])
 
   useFocusEffect(

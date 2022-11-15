@@ -8,6 +8,9 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location'; // track user location
 import { Cache } from "react-native-cache";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { encrypt } from '../components/Encryption';
+import * as Device from 'expo-device';
+import * as Application from 'expo-application';
 
 export default function AddRisk(props, { navigation, route }) {
   const [marker, setMarker] = useState(null) // กำหนด Marker เมื่อผู้ใช้กดบริเวณแผนที่
@@ -19,6 +22,7 @@ export default function AddRisk(props, { navigation, route }) {
   const [longitude, setlongitude] = useState(0); // เก็บข้อมูลรายละเอียดจุดเสี่ยง
   const [validateDetailFail, setvalidateDetailFail] = useState(false); // ตรวจสอบช่องที่รายละเอียดผู้ใช้ต้องกรอก
   const [validatePosFail, setvalidatePosFail] = useState(false); // ตรวจสอบช่องที่พิกัดผู้ใช้ต้องกรอก
+  const [deviceId, setDeviceId] = useState("")
   
   // function GetData ดึงข้อมูลจาก Firebase Database
   async function GetData() {
@@ -28,6 +32,15 @@ export default function AddRisk(props, { navigation, route }) {
     setData(d)
   }
   
+  async function GetDeviceID() {
+    if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
+      setDeviceId(encrypt(await Application.getIosIdForVendorAsync()))
+    }
+    else{
+      setDeviceId(encrypt(Application.androidId))
+    }
+  }
+
   // หากมีการพิมพ์ในช่องจะ setstate
   const onChangeDetail = query => setDetail(query);
   const onChangeLati = query => setlatitude(Number(query));
@@ -58,15 +71,9 @@ export default function AddRisk(props, { navigation, route }) {
         สำนักงานเขต: "-",
         พิกัด: (Math.round(marker.latitude*1000000)/1000000).toFixed(6)+", "+(Math.round(marker.longitude*1000000)/1000000).toFixed(6),
         like: 0,
-        dislike: 0
+        dislike: 0,
+        owner: deviceId
       });
-      const userRiskID = await cache.get("createID")
-      if(userRiskID==undefined){
-        await cache.set("createID", [snapshot.docs.length+1])
-      }else{
-        userRiskID.unshift(snapshot.docs.length+1)
-        await cache.set("createID", userRiskID)
-      }
       console.log("Document written with ID: ", docRef.id);
     }
   }
@@ -102,6 +109,7 @@ export default function AddRisk(props, { navigation, route }) {
     }
     getStartLocation();
     GetData();
+    GetDeviceID();
   }, [])
 
   return (

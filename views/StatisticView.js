@@ -33,16 +33,16 @@ export default function StatisticView() {
 
     async function getList(){
         try{
-            // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
-            //         .then(response=>{
-            //           data = response.data.result.records
-            //         })
-            //         .catch(error=>{
-            //           console.error(error)
-            //         })
+            await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?&resource_id=6cc7a43f-52b3-4381-9a8f-2b8a35c3174a')
+                    .then(response=>{
+                      data = response.data.result.records
+                    })
+                    .catch(error=>{
+                      console.error(error)
+                    })
             // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
-            const customData = require('../assets/RiskArea.json')
-            data = customData.result.records
+            // const customData = require('../assets/RiskArea.json')
+            // data = customData.result.records
             // เอาข้อมูลจาก api ใส่ firebase
             let docRef;
             for (let i=0; i<data.length;i++){
@@ -52,7 +52,8 @@ export default function StatisticView() {
                 สำนักงานเขต: data[i].สำนักงานเขต,
                 พิกัด: data[i].พิกัด,
                 like: 0,
-                dislike: 0
+                dislike: 0,
+                owner: '-'
               });
             console.log("Document written with ID: ", docRef.id);
           }

@@ -16,7 +16,8 @@ import TimeNotifications from '../components/TimeNotifications'; // count time
 import AddRisk from './AddRisk'; // Add Risk View
 import { useFocusEffect } from "@react-navigation/native";
 import { encrypt } from '../components/Encryption';
-import DeviceInfo from 'react-native-device-info';
+import * as Device from 'expo-device';
+import * as Application from 'expo-application';
 
 // *********************** Tracking User Location (Task Manager) ***********************
 const LOCATION_TASK_NAME = "LOCATION_TASK_NAME"
@@ -79,9 +80,18 @@ export default function MapsView({ navigation, route }) {
     setRefresh(false)
   }
 
+  async function GetDeviceID() {
+    if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
+      setDeviceId(encrypt(await Application.getIosIdForVendorAsync()))
+    }
+    else{
+      setDeviceId(encrypt(Application.androidId))
+    }
+  }
+
   useEffect(()=>{
     GetData();
-    setDeviceId(DeviceInfo.getUniqueId());
+    GetDeviceID();
   }, [])
 
   // เมื่อผู้ใช้ปิด Notification
