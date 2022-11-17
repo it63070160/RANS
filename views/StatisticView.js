@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, ActivityIndicator , ScrollView, TouchableOpacity} from 'react-native';
 import db from '../database/firebaseDB';
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDocs, onSnapshot, where, query, deleteDoc } from "firebase/firestore";
 import { Dimensions } from "react-native";
 import { useEffect, useState } from 'react';
 // https://npm.io/package/react-native-animated-charts
@@ -13,10 +13,11 @@ import axios from 'axios'; // ดึง API
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
-
 export default function StatisticView() {
 
     let data = []
+
+    let data2 = []
 
     let [listData, setListData] = useState([])
 
@@ -24,25 +25,24 @@ export default function StatisticView() {
 
     let [listDataGroupSort, setListDataGroupSort] = useState([])
 
-    // let [labels, setLabels] = useState([])
-
-    // let [dataY, setDataY] = useState([])
-
     // show {n} elements first
     const showTop = 5
 
     async function getList(){
         try{
-            await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?&resource_id=6cc7a43f-52b3-4381-9a8f-2b8a35c3174a')
-                    .then(response=>{
-                      data = response.data.result.records
-                    })
-                    .catch(error=>{
-                      console.error(error)
-                    })
+            // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
+            //         .then(response=>{
+            //           data = response.data.result.records
+            //         })
+            //         .catch(error=>{
+            //           console.error(error)
+            //         })
             // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
-            // const customData = require('../assets/RiskArea.json')
-            // data = customData.result.records
+            const customData = require('../assets/RiskArea.json')
+            const customData2 = require('../assets/RiskArea2.json')
+            data = customData.result.records
+            data2 = customData2.result.records
+            data = data.concat(data2)
             // เอาข้อมูลจาก api ใส่ firebase
             let docRef;
             for (let i=0; i<data.length;i++){
@@ -56,26 +56,23 @@ export default function StatisticView() {
                 owner: '-'
               });
             console.log("Document written with ID: ", docRef.id);
-          }
+            }
         }catch(err){
             console.error(err)
         }
     }
 
     // ดึงข้อมูล row จาก db -> collection
-    async function getData() {
+    function getData(querySnapshot) {
 
-        const col = collection(db, 'rans-database');
-        const snapshot = await getDocs(col);
-        console.log("Getting Data From Firebase.")
+        let dataFromFirebase = []
+        querySnapshot.forEach((res) => {
+          dataFromFirebase.push(res.data());
+        })
 
-        const d = snapshot.docs.map(doc => doc.data())
+        setListData(dataFromFirebase)
 
-        setListData(d)
-
-        // groupData(d, 'สำนักงานเขต')
-
-        formatGraph(groupData(d, 'สำนักงานเขต'))
+        formatGraph(groupData(dataFromFirebase, 'สำนักงานเขต'))
 
     }
 
@@ -100,19 +97,9 @@ export default function StatisticView() {
 
         let resGroupSec = []
 
-        // let lb = []
-        // let dtY = []
-
         for (let j=0; j<sortedData.length; j++){
           resGroupSec.push({label: sortedData[j].label, dataY: sortedData[j].dataY})
-          // if (j < showTop){
-          //   lb.push(sortedData[j].label + "\n (" + sortedData[j].dataY + " จุด)")
-          //   dtY.push(sortedData[j].dataY)
-          // }
         }
-
-        // setLabels(lb)
-        // setDataY(dtY)
 
         setListDataGroupSort(resGroupSec)
     }
@@ -128,9 +115,60 @@ export default function StatisticView() {
       }
     }
 
+    async function test(){
+      // try {
+      //  for (let i=0; i<=9; i++){
+
+      //   let docRef = await addDoc(collection(db, "rans-database"), {
+      //     _id: 500,
+      //     รายละเอียด: 'test',
+      //     สำนักงานเขต: 'บึงกุ่ม',
+      //     พิกัด: '13.644037, 100.413331',
+      //     like: 0,
+      //     dislike: 0
+      //   });
+      //   console.log(docRef.id)}
+      
+      // } catch(er){
+      //   console.log(er)
+      // }
+
+      // let q = query(collection(db, "rans-database"), where("_id", "==", 500))
+      // let u = await getDocs(q)
+
+      // u.docs.forEach((t) => {
+      //   deleteDoc(t.ref)
+      // })
+    }
+
+  // function test1(){
+  //   let res = []
+  //   let o = listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)
+  //   res.push(o[3])
+  //   res.push(o[1])
+  //   res.push(o[0])
+  //   res.push(o[2])
+  //   res.push(o[4])
+  //   return res
+  // }
+
+  // function test2(){
+  //   let res = []
+  //   let o = listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)
+  //   res.push(o[3])
+  //   res.push(o[1])
+  //   res.push(o[0])
+  //   res.push(o[2])
+  //   res.push(o[4])
+  //   return res
+  // }
+
     useEffect(()=>{
       // getList()
-      getData();
+      // getData();
+      const unsub = onSnapshot(collection(db, 'rans-database'), getData, (error) => {
+        console.log(error)
+      });
     }, [])
 
     return (
@@ -142,6 +180,8 @@ export default function StatisticView() {
               <BarChart
                 labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)}
                 dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)}
+                // labels={test1()}
+                // dataY={test2()}
                 color={graphColor}
                 height={screenHeight * .28}
                 containerStyles={styles.barChart}
@@ -150,11 +190,11 @@ export default function StatisticView() {
             <ScrollView style={styles.bgScroll}>
               {listDataGroupSort.map(generateList)}
             </ScrollView>
-            <View style={{backgroundColor: '#233212'}}>
-              <TouchableOpacity onPress={() => getData()} style={styles.button}>
-                  <Text style={styles.buttonText}>Refresh</Text>
+            {/* <View style={{backgroundColor: '#233212'}}>
+              <TouchableOpacity onPress={() => getList()} style={styles.button}>
+                  <Text style={styles.buttonText}>Test</Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
             </View>
             :<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>
             }
