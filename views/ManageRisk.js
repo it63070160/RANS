@@ -27,11 +27,11 @@ export default function ManageRisk({ navigation, route }) {
   const [searching, setSearching] = useState(false); // boolean เก็บว่าผู้ใช้กำลังค้นหาหรือไม่
   const [addPress, setAddPress] = useState(false); // boolean ผู้ใช้กดปุ่ม add บน Header หรือไม่
   const [editPress, setEditPress] = useState(false); // boolean ผู้ใช้กดปุ่ม edit 
-  const [editText, setEditText] = useState("");
+  const [editText, setEditText] = useState(""); // เก็บข้อความที่ผู้ใช้แก้ไข
   const [detailData, setDetailData] = useState(); // เก็บข้อมูลจุดเสี่ยงเมื่อผู้ใช้กดปุ่ม info
-  const [refresh, setRefresh] = useState(true);
-  const [deviceId, setDeviceId] = useState("");
-  const [validateDetailFail, setvalidateDetailFail] = useState(false);
+  const [refresh, setRefresh] = useState(true); // boolean refresh หน้า
+  const [deviceId, setDeviceId] = useState(""); // Device ID ของผู้ใช้
+  const [validateDetailFail, setvalidateDetailFail] = useState(false); // ตรวจสอบการแก้ไขของผู้ใช้
 
   // function GetPosition ดึงข้อมูลจุดเสี่ยง 100 จุดจาก API
   async function GetPosition(){
@@ -67,6 +67,7 @@ export default function ManageRisk({ navigation, route }) {
     setRefresh(false)
   }
 
+  // เก็บ Device ID ของผู้ใช้
   async function GetDeviceID() {
     if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
       setDeviceId(encrypt(await Application.getIosIdForVendorAsync()))
@@ -421,7 +422,7 @@ export default function ManageRisk({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
-      GetCache()
+      GetCache() // ทุกครั้งที่ผู้ใช้เปิดหน้านี้จะมีการดึง Cache มาใช้กำหนดสีปุ่ม
       return () => {
       };
     }, [])

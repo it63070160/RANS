@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import db from '../database/firebaseDB';
-import { collection, query, getDocs, addDoc, orderBy, onSnapshot} from "firebase/firestore";
+import { collection, getDocs, addDoc, onSnapshot} from "firebase/firestore";
 import { TextInput } from 'react-native-gesture-handler';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import * as Location from 'expo-location'; // track user location
-import { Cache } from "react-native-cache";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { encrypt } from '../components/Encryption';
 import * as Device from 'expo-device';
 import * as Application from 'expo-application';
 
-export default function AddRisk(props, { navigation, route }) {
+export default function AddRisk(props) {
   const [marker, setMarker] = useState(null) // กำหนด Marker เมื่อผู้ใช้กดบริเวณแผนที่
   const [focusPos, setfocusPos] = useState({latitude: 13.736717, longitude: 100.523186}) // ตำแหน่งของผู้ใช้
   const [userCoords, setUserCoords] = useState(); // จับตำแหน่งเมื่อผู้ใช้ขยับ
@@ -22,8 +20,9 @@ export default function AddRisk(props, { navigation, route }) {
   const [longitude, setlongitude] = useState(0); // เก็บข้อมูลรายละเอียดจุดเสี่ยง
   const [validateDetailFail, setvalidateDetailFail] = useState(false); // ตรวจสอบช่องที่รายละเอียดผู้ใช้ต้องกรอก
   const [validatePosFail, setvalidatePosFail] = useState(false); // ตรวจสอบช่องที่พิกัดผู้ใช้ต้องกรอก
-  const [deviceId, setDeviceId] = useState("")
+  const [deviceId, setDeviceId] = useState("") // Device ID ของผู้ใช้
   
+  // เก็บ Device ID ของผู้ใช้
   async function GetDeviceID() {
     if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
       setDeviceId(encrypt(await Application.getIosIdForVendorAsync()))
@@ -78,16 +77,7 @@ export default function AddRisk(props, { navigation, route }) {
     }
   }
 
-  // ตั้งค่า cache
-  const cache = new Cache({
-    namespace: "RANS",
-    policy: {
-        maxEntries: 50000, // if unspecified, it can have unlimited entries
-        stdTTL: 0 // the standard ttl as number in seconds, default: 0 (unlimited)
-    },
-    backend: AsyncStorage
-  });
-
+  // ดึงข้อมูลแบบ Real time
   const getCollection = (querySnapshot) => {
     const all_data = [];
     querySnapshot.forEach((res) => {
@@ -111,41 +101,41 @@ export default function AddRisk(props, { navigation, route }) {
   }, [])
 
   return (
+    <View>
       <View>
-          <View>
-              <Text style={styles.InputHeader}>รายละเอียด <Text style={{color:"red", fontSize:validateDetailFail?12:0}}>* กรุณากรอกรายละเอียด</Text></Text>
-              <TextInput style={[styles.Input, {borderColor:validateDetailFail?"red":"black"}]} placeholder='รายละเอียด' multiline={true} onChangeText={onChangeDetail} value={detail}/>
-              <Text style={styles.InputHeader}>ระบุตำแหน่ง <Text style={{color:"red", fontSize:validatePosFail?12:0}}>* กรุณาระบุพิกัด</Text></Text>
-              <View style={styles.posContainer}>
-                <TextInput style={[styles.posInput, {borderColor:validatePosFail?"red":"black"}]} placeholder='ละติจูด' keyboardType='numeric' value={latitude} onChangeText={onChangeLati} onChange={createMarkerwithInput}/>
-                <TextInput style={[styles.posInput, {borderColor:validatePosFail?"red":"black"}]} placeholder='ลองจิจูด' keyboardType='numeric' value={longitude} onChangeText={onChangeLongi} onChange={createMarkerwithInput}/>
-              </View>
-          </View>
-          <MapView 
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            showsUserLocation={true}
-            region={{latitude: focusPos.latitude, longitude: focusPos.longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
-            onPress={(e)=>{setMarker(e.nativeEvent.coordinate);setlatitude((Math.round(e.nativeEvent.coordinate.latitude*1000000)/1000000).toFixed(6).toString());setlongitude((Math.round(e.nativeEvent.coordinate.longitude*1000000)/1000000).toFixed(6).toString())}}
-            onUserLocationChange={(e)=>setUserCoords(e.nativeEvent.coordinate)}
-          >
-            {marker && <Marker coordinate={marker} pinColor={"aqua"}/>}
-            { data.map((item, index) => (
-              <Marker key={index} pinColor={item.like>=50?"red":item.like>=25?"yellow":"green"} title={"จุดเสี่ยงที่ "+(index+1)+(item.like>=50?" (อันตราย)":item.like>=25?" (โปรดระวัง)":"")} description={item.รายละเอียด} coordinate = {item.พิกัด.indexOf(" ")>=0?{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" ")))}:{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",")+1))}}/>
-            ))}
-          </MapView>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={()=>{setMarker(userCoords);setfocusPos(userCoords)}}>
-              <MaterialIcons name="my-location" size={24} color="black" />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.redButton]} onPress={()=>{setMarker(null);setDetail("");setlatitude("");setlongitude("")}}>
-              <FontAwesome name="trash-o" size={24} color="black" />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.greenButton]} onPress={handleAddPress}>
-              <FontAwesome name="check" size={24} color="black" />
-            </TouchableOpacity>
+          <Text style={styles.InputHeader}>รายละเอียด <Text style={{color:"red", fontSize:validateDetailFail?12:0}}>* กรุณากรอกรายละเอียด</Text></Text>
+          <TextInput style={[styles.Input, {borderColor:validateDetailFail?"red":"black"}]} placeholder='รายละเอียด' multiline={true} onChangeText={onChangeDetail} value={detail}/>
+          <Text style={styles.InputHeader}>ระบุตำแหน่ง <Text style={{color:"red", fontSize:validatePosFail?12:0}}>* กรุณาระบุพิกัด</Text></Text>
+          <View style={styles.posContainer}>
+            <TextInput style={[styles.posInput, {borderColor:validatePosFail?"red":"black"}]} placeholder='ละติจูด' keyboardType='numeric' value={latitude} onChangeText={onChangeLati} onChange={createMarkerwithInput}/>
+            <TextInput style={[styles.posInput, {borderColor:validatePosFail?"red":"black"}]} placeholder='ลองจิจูด' keyboardType='numeric' value={longitude} onChangeText={onChangeLongi} onChange={createMarkerwithInput}/>
           </View>
       </View>
+      <MapView 
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        showsUserLocation={true}
+        region={{latitude: focusPos.latitude, longitude: focusPos.longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
+        onPress={(e)=>{setMarker(e.nativeEvent.coordinate);setlatitude((Math.round(e.nativeEvent.coordinate.latitude*1000000)/1000000).toFixed(6).toString());setlongitude((Math.round(e.nativeEvent.coordinate.longitude*1000000)/1000000).toFixed(6).toString())}}
+        onUserLocationChange={(e)=>setUserCoords(e.nativeEvent.coordinate)}
+      >
+        {marker && <Marker coordinate={marker} pinColor={"aqua"}/>}
+        { data.map((item, index) => (
+          <Marker key={index} pinColor={item.like>=50?"red":item.like>=25?"yellow":"green"} title={"จุดเสี่ยงที่ "+(index+1)+(item.like>=50?" (อันตราย)":item.like>=25?" (โปรดระวัง)":"")} description={item.รายละเอียด} coordinate = {item.พิกัด.indexOf(" ")>=0?{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" ")))}:{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",")+1))}}/>
+        ))}
+      </MapView>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={()=>{setMarker(userCoords);setfocusPos(userCoords)}}>
+          <MaterialIcons name="my-location" size={24} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, styles.redButton]} onPress={()=>{setMarker(null);setDetail("");setlatitude("");setlongitude("")}}>
+          <FontAwesome name="trash-o" size={24} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, styles.greenButton]} onPress={handleAddPress}>
+          <FontAwesome name="check" size={24} color="black" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 

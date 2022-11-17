@@ -1,23 +1,23 @@
 import React, { useCallback } from 'react';
 import { StyleSheet, View, Modal, Pressable, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons, AntDesign } from '@expo/vector-icons'; // Icon
+import { Ionicons, AntDesign, Entypo } from '@expo/vector-icons'; // Icon
 import axios from 'axios'; // ดึง API
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as TaskManager from "expo-task-manager" // จัดการ task ตอน tracking
 import * as Location from 'expo-location'; // track user location
 import { getPreciseDistance } from 'geolib'; // Calculate Distrance between 2 locations
 import db from '../database/firebaseDB'; // Database
-import { collection, query, where, getDocs, orderBy, onSnapshot} from "firebase/firestore"; // firebase
+import { collection, query, where, getDocs, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"; // firebase
 import { Cache } from 'react-native-cache'; // cache
 import AsyncStorage from '@react-native-async-storage/async-storage'; // cache storage
 import { HeaderButtons, Item } from "react-navigation-header-buttons"; // header button
 import CustomHeaderButton from '../components/CustomHeaderButton'; // header button
 import TimeNotifications from '../components/TimeNotifications'; // count time
 import AddRisk from './AddRisk'; // Add Risk View
-import { useFocusEffect } from "@react-navigation/native";
-import { encrypt } from '../components/Encryption';
-import * as Device from 'expo-device';
-import * as Application from 'expo-application';
+import { useFocusEffect } from "@react-navigation/native"; // check user is focus or not
+import { encrypt } from '../components/Encryption'; // encrypt device id
+import * as Device from 'expo-device'; // get device id
+import * as Application from 'expo-application'; // get device id
 
 // *********************** Tracking User Location (Task Manager) ***********************
 const LOCATION_TASK_NAME = "LOCATION_TASK_NAME"
@@ -39,314 +39,11 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   }
 })
 
-// export default function MapsView({ navigation, route }) {
-//   const [addPress, setAddPress] = useState(false); // boolean ผู้ใช้กดปุ่ม add บน Header หรือไม่
-//   const [refresh, setRefresh] = useState(false); // boolean ผู้ใช้กดปุ่ม add บน Header หรือไม่
-//   const [data, setData] = useState([]); // data เก็บข้อมูลจุดเสี่ยง
-//   const [position, setPosition] = useState({latitude: 13.736717, longitude: 100.523186}) // position เก็บข้อมูลละติจูดและลองจิจูดของผู้ใช้ **Need Default Value** {latitude: number, longitude: number}
-//   const [listRiskArea, setlistRiskArea] = useState([]) // Calculate Distance between two locations
-//   const [deviceId, setDeviceId] = useState("")
-//   // *********************** Notifications ***********************
-//   const [modalVisible, setModalVisible] = useState(false);
-//   const [AlertMe, setAlertMe] = useState(false);
-//   const [Ignored_Notification, setIgnored_Notification] = useState([])
-
-//   // function GetPosition ดึงข้อมูลจุดเสี่ยง 100 จุดจาก API
-//   async function GetPosition(){
-//     try{
-//       // JSON หาก API ล่ม
-//       // const customData = require('../assets/RiskArea.json')
-//       // setData(customData.result.records)
-      
-//       // API
-//       await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?&resource_id=6cc7a43f-52b3-4381-9a8f-2b8a35c3174a')
-//               .then(response=>{
-//                 setData(response.data.result.records)
-//               })
-//               .catch(error=>{
-//                 console.error(error)
-//               })
-//     }catch(err){
-//       console.error(err)
-//     }
-//   }
-
-//   // ดึงข้อมูลจาก Firebase Database
-//   async function GetData() {
-//     const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
-//     const querySnapshot = await getDocs(q);
-//     const d = querySnapshot.docs.map(doc => doc.data())
-//     setData(d)
-//     setRefresh(false)
-//   }
-
-//   async function GetDeviceID() {
-//     if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
-//       setDeviceId(encrypt(await Application.getIosIdForVendorAsync()))
-//     }
-//     else{
-//       setDeviceId(encrypt(Application.androidId))
-//     }
-//   }
-
-//   useEffect(()=>{
-//     GetData();
-//     GetDeviceID();
-//   }, [])
-
-//   // เมื่อผู้ใช้ปิด Notification
-//   function closeModal(){
-//     setModalVisible(false)
-//   }
-
-//   // เมื่อระบบปิด Notification เอง
-//   function autoCloseModal(){
-//     let alreadyIgnore = false
-//     setModalVisible(false)
-//     listRiskArea.map((item)=>{
-//       if(Ignored_Notification.length>0){
-//         Ignored_Notification.map((Ignoreitem)=>{
-//           if(Ignoreitem.id==item.id){
-//             alreadyIgnore = true
-//           }
-//         })
-//         if(alreadyIgnore == false){
-//           setIgnored_Notification((prevIgnored_Notification)=>([...prevIgnored_Notification, item]))
-//         }
-//       }else{
-//         setIgnored_Notification([item])
-//       }
-//     })
-//     console.log("autoClose", Ignored_Notification)
-//   }
-
-//   // Component Function แสดง Notification เมื่อผู้ใช้ใกล้จุดเสี่ยง
-//   function RiskNotification(){
-//     const listArea = []
-//     listRiskArea.sort((a,b) => (a.distrance > b.distrance) ? 1 : ((b.distrance > a.distrance) ? -1 : 0))
-//     listRiskArea.map((item, index)=>{
-//       listArea.push(
-//         <View key={index}>
-//           <Text style={[styles.modalText, {fontWeight:item.distrance<=100?"bold":"normal"}]}>
-//             <Text style={{color:item.like >= 50 ? "red" : item.like >= 25 ? "orange" : "green"}}>{item.detail} </Text>
-//             <Text>[{item.distrance} เมตร]</Text>
-//           </Text>
-//         </View>
-//       )
-//     })
-//     if(listArea.length>3){
-//       let alllength = listArea.length
-//       listArea.splice(3, listArea.length)
-//       listArea.push(
-//         <Text key={alllength} style={{fontWeight:'bold'}}>... and {alllength-3} more</Text>
-//       )
-//     }
-//     return (
-//       <Modal
-//         animationType="slide"
-//         transparent={true}
-//         visible={modalVisible}
-//         onRequestClose={() => {
-//           closeModal();
-//         }}>
-//         <View style={styles.centeredView}>
-//           <View style={styles.modalView}>
-//             <Text style={styles.modalTextHeader}>พบจุดเสี่ยงใกล้ท่าน ({listRiskArea.length} จุด)</Text>
-//             {listArea}
-//             <View style={{flexDirection: 'row'}}>
-//               <Pressable
-//                 style={[styles.button, styles.buttonClose]}
-//                 onPress={() => closeModal()}>
-//                 <Text style={styles.textStyle}>❌ (
-//                 <TimeNotifications autoCloseModal={autoCloseModal}/> 
-//                 )</Text>
-//               </Pressable>
-//             </View>
-//           </View>
-//         </View>
-//       </Modal>
-//     );
-//   }
-
-  
-//   // คำนวณระยะห่างระหว่างผู้ใช้กับจุดเสี่ยง
-//   const calculatePreciseDistance = (position, data) => {
-//     var RiskArea = []
-//     data.map((item)=>{
-//       var pdis = getPreciseDistance(
-//         position,
-//         item.พิกัด.indexOf(" ")>=0?{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" ")))}:{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",")+1))}
-//       );
-//       if(pdis<=300){
-//         RiskArea.push({detail: item.รายละเอียด, distrance: pdis, id: item._id, like:item.like, dislike:item.dislike})
-//       }
-//     })
-//     if(RiskArea.length>0){
-//       setModalVisible(true)
-//     }
-//     setlistRiskArea(RiskArea)
-//   };
-
-//   // Start location tracking in foreground
-//   const startForegroundUpdate = async () => {
-//     // Check if foreground permission is granted
-//     const { granted } = await Location.getForegroundPermissionsAsync()
-//     if (!granted) {
-//       console.log("location tracking denied")
-//       return
-//     }
-
-//     // Make sure that foreground location tracking is not running
-//     foregroundSubscription?.remove()
-
-//     // Start watching position in real-time
-//     foregroundSubscription = await Location.watchPositionAsync(
-//       {
-//         // For better logs, we set the accuracy to the most sensitive option
-//         accuracy: Location.Accuracy.BestForNavigation,
-//         // distanceInterval: 1,
-//         enableHighAccuracy:true,
-//         timeInterval: 23000
-//       },
-//       location => {
-//         setPosition(location.coords)
-//         calculatePreciseDistance(position, data)
-//       }
-//     )
-//   }
-
-//   // Stop location tracking in foreground
-//   const stopForegroundUpdate = async () => {
-//     foregroundSubscription?.remove()
-//     const ignoreID = await cache.get('ignoreID');
-//     if(Ignored_Notification.length>0){
-//       const list_ignoreID = []
-//       Ignored_Notification.map((item)=>{
-//         list_ignoreID.push(item.id)
-//       })
-//       if(ignoreID==undefined){
-//         await cache.set('ignoreID', list_ignoreID) // ถ้าไม่มี Cache จะ set ใหม่
-//       }else{
-//         ignoreID.map((item)=>{
-//           if(list_ignoreID.indexOf(item)>=0){
-//             list_ignoreID.splice(list_ignoreID.indexOf(item), 1)
-//           }
-//         })
-//         list_ignoreID.map((item)=>{
-//           ignoreID.unshift(item)
-//         })
-//         await cache.set('ignoreID', ignoreID) // Update Cache
-//       }
-//     }
-//   }
-
-//   useFocusEffect(
-//     useCallback(() => {
-//       CheckFakeRisk()
-//       return () => {
-//         stopForegroundUpdate();
-//         setAlertMe(false);
-//       };
-//     }, [])
-//   );
-
-//   useEffect(()=>{
-//     const requestPermissions = async () => {
-//       const foreground = await Location.requestForegroundPermissionsAsync()
-//       if (foreground.granted) await Location.requestBackgroundPermissionsAsync()
-//       let location = await Location.getCurrentPositionAsync({});
-//       setPosition(location.coords)
-//     }
-//     requestPermissions();
-//   }, [])
-  
-//   // ตั้งค่า cache
-//   const cache = new Cache({
-//     namespace: "RANS",
-//     policy: {
-//         maxEntries: 50000, // if unspecified, it can have unlimited entries
-//         stdTTL: 0 // the standard ttl as number in seconds, default: 0 (unlimited)
-//     },
-//     backend: AsyncStorage
-//   });
-
-//   // Component Function เมื่อมีการกดปุ่ม + บน Header
-//   function AddNewRisk(){
-//     return (
-//       <Modal
-//         animationType="slide"
-//         transparent={true}
-//         visible={addPress}
-//         onRequestClose={() => {
-//           closeAddModal();
-//         }}
-//       >
-//         <View style={styles.centeredView}>
-//           <View style={styles.modalViewWithMap}>
-//             <TouchableOpacity style={styles.modalCloseButton} onPress={()=>{setAddPress(false)}}>
-//               <AntDesign name="close" size={24} color="black" />
-//             </TouchableOpacity>
-//             <AddRisk closeAddModal={closeAddModal}/>
-//           </View>
-//         </View>
-//       </Modal>
-//     )
-//   }
-
-//   // ปิด Add Modal ที่ผู้ใช้กดปุ่ม + บน Header
-//   function closeAddModal(){
-//     setAddPress(false)
-//   }
-
-//   // กำหนด onPress ให้ปุ่ม refresh บน Header
-//   useEffect(() => {
-//     navigation.setOptions({
-//       headerRight:()=>(
-//         <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
-//           <Item title='refresh' iconName='refresh' onPress={()=>{GetData();setRefresh(true)}}/>
-//         </HeaderButtons>
-//       )
-//     });
-//   }, [navigation, data]);
-
-//   async function CheckFakeRisk(){
-//     const q = query(collection(db, "rans-database"), where("dislike", '>=', 100));
-//     const querySnapshot = await getDocs(q);
-//     const d = querySnapshot.docs.map(doc => doc.id)
-//     console.log(d)
-//   }
-
-//   return (
-//     <View style={styles.container}>
-//       {refresh?<ActivityIndicator style={styles.loading} color={'green'} size={'large'}/>:
-//       <>
-//       <View style={styles.buttonContainer}>
-//         <TouchableOpacity style={styles.bottomButton} onPress={() => { setAddPress(true); } }>
-//           <Ionicons name="add" size={24} color="black" />
-//         </TouchableOpacity>
-//         <TouchableOpacity style={styles.bottomButton} onPress={() => { AlertMe ? stopForegroundUpdate() : startForegroundUpdate(); setAlertMe(!AlertMe); } }>
-//           <Text style={{ fontSize: 20 }}>{AlertMe ? 'Stop' : 'Start'}</Text>
-//         </TouchableOpacity>
-//       </View>
-//       <AddNewRisk />
-//       <RiskNotification />
-//       <MapView style={styles.map} 
-//           region={{ latitude: position.latitude, longitude: position.longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
-//           provider={PROVIDER_GOOGLE}
-//           showsUserLocation={true}
-//       >
-//         {data.map((item, index) => (
-//           <Marker key={index} pinColor={item.like >= 50 ? "red" : item.like >= 25 ? "yellow" : "green"} title={"จุดเสี่ยงที่ " + (index + 1) + (item.like >= 50 ? " (อันตราย)" : item.like >= 25 ? " (โปรดระวัง)" : "")} description={item.รายละเอียด} coordinate={item.พิกัด.indexOf(" ") >= 0 ? { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" "))) } : { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",") + 1)) }} />
-//         ))}
-//       </MapView>
-//       </>}
-//     </View>
-//   );
-// }
-
 function CheckFocusScreen(props) {
   useFocusEffect(
     useCallback(() => {
+      props.CheckFakeRisk();
+      props.lightMode();
       return () => {
         props.stopForegroundUpdate();
       };
@@ -367,12 +64,15 @@ export default class MapsView extends React.Component {
       addPress: false,
       AlertMe: false,
       modalVisible: false,
-      refresh: false
+      refresh: false,
+      dark: false
     }
     
     this.autoCloseModal = this.autoCloseModal.bind(this)
     this.closeAddModal = this.closeAddModal.bind(this)
     this.stopForegroundUpdate = this.stopForegroundUpdate.bind(this)
+    this.handleLightMode = this.handleLightMode.bind(this)
+    this.CheckLightMode = this.CheckLightMode.bind(this)
   }
   
   componentDidMount(){
@@ -410,6 +110,141 @@ export default class MapsView extends React.Component {
     }
     requestPermissions();
     this.GetDeviceID();
+    this.darkMapStyle = [
+      {
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#242f3e"
+          }
+        ]
+      },
+      {
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {
+            "color": "#746855"
+          }
+        ]
+      },
+      {
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {
+            "color": "#242f3e"
+          }
+        ]
+      },
+      {
+        "featureType": "administrative.locality",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {
+            "color": "#d59563"
+          }
+        ]
+      },
+      {
+        "featureType": "road",
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#38414e"
+          }
+        ]
+      },
+      {
+        "featureType": "road",
+        "elementType": "geometry.stroke",
+        "stylers": [
+          {
+            "color": "#212a37"
+          }
+        ]
+      },
+      {
+        "featureType": "road",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {
+            "color": "#9ca5b3"
+          }
+        ]
+      },
+      {
+        "featureType": "road.arterial",
+        "elementType": "geometry.fill",
+        "stylers": [
+          {
+            "color": "#bababa"
+          }
+        ]
+      },
+      {
+        "featureType": "road.highway",
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#746855"
+          }
+        ]
+      },
+      {
+        "featureType": "road.highway",
+        "elementType": "geometry.stroke",
+        "stylers": [
+          {
+            "color": "#1f2835"
+          }
+        ]
+      },
+      {
+        "featureType": "road.highway",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {
+            "color": "#f3d19c"
+          }
+        ]
+      },
+      {
+        "featureType": "transit",
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#2f3948"
+          }
+        ]
+      },
+      {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [
+          {
+            "color": "#17263c"
+          }
+        ]
+      },
+      {
+        "featureType": "water",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {
+            "color": "#515c6d"
+          }
+        ]
+      },
+      {
+        "featureType": "water",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {
+            "color": "#17263c"
+          }
+        ]
+      }
+    ]
+    this.defaultMapStyle = []
   }
 
   componentWillUnmount(){
@@ -420,6 +255,7 @@ export default class MapsView extends React.Component {
     })
   }
 
+  // ดึงข้อมูลแบบ Real time
   getCollection = (querySnapshot) => {
     const all_data = [];
     querySnapshot.forEach((res) => {
@@ -466,6 +302,7 @@ export default class MapsView extends React.Component {
     })
   }
 
+  // เก็บ Device ID ของผู้ใช้
   async GetDeviceID() {
     if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
       this.setState({
@@ -539,29 +376,6 @@ export default class MapsView extends React.Component {
     await this.cache.set('ignoreID', ignoreList)
     this.forceUpdate();
   }
-  // async autoCloseModal() {
-  //   let ignoreList = []
-  //   let ignoreCache = await this.cache.get("ignoreID")
-  //   if(ignoreCache==undefined){
-  //     ignoreCache = []
-  //   }
-  //   this.setState({
-  //     modalVisible: false
-  //   })
-  //   this.state.listRiskArea.map((item)=>{
-  //     if(ignoreCache.length>0){
-  //       if(ignoreCache.indexOf(item.id)<0){
-  //         ignoreList.push(item.id)
-  //       }
-  //     }else{
-  //       ignoreList.push(item.id)
-  //     }
-  //   })
-  //   this.setState({
-  //     Ignored_Notification: ignoreList
-  //   })
-  //   this.forceUpdate();
-  // }
 
   // คำนวณระยะห่างระหว่างผู้ใช้กับจุดเสี่ยง
   calculatePreciseDistance(position, data) {
@@ -624,43 +438,56 @@ export default class MapsView extends React.Component {
       AlertMe:false
     })
   }
-  // async stopForegroundUpdate() {
-  //   foregroundSubscription?.remove()
-  //   this.setState({
-  //     AlertMe:false
-  //   })
-  //   const ignoreID = await this.cache.get('ignoreID');
-  //   let likeCache = await this.cache.get('like');
-  //   let disLikeCache = await this.cache.get('dislike');
-  //   const list_ignoreID = this.state.Ignored_Notification;
-  //   if(this.state.Ignored_Notification.length>0){
-  //     if(likeCache==undefined){
-  //       likeCache = []
-  //     }
-  //     if(disLikeCache==undefined){
-  //       disLikeCache = []
-  //     }
-  //     this.state.Ignored_Notification.map((item, index)=>{
-  //       if(likeCache.indexOf(item)>=0 || disLikeCache.indexOf(item)>=0){
-  //         list_ignoreID.splice(index, 1)
-  //       }
-  //     })
-  //     if(ignoreID==undefined){
-  //       await this.cache.set('ignoreID', list_ignoreID) // ถ้าไม่มี Cache จะ set ใหม่
-  //     }else{
-  //       list_ignoreID.map((item)=>{
-  //         ignoreID.unshift(item)
-  //       })
-  //       await this.cache.set('ignoreID', ignoreID) // Update Cache
-  //     }
-  //   }
-  // }
 
+  // ตรวจจุดเสี่ยงที่มีคนกด dislike มากกว่าหรือเท่ากับ 100
   async CheckFakeRisk(){
     const q = query(collection(db, "rans-database"), where("dislike", '>=', 100));
     const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.id)
-    console.log(d)
+    querySnapshot.forEach(async (snapDoc) => {
+      await deleteDoc(doc(db, "rans-database", snapDoc.id))
+      .then(
+        console.log("Data Deleted")
+      )
+    });
+  }
+
+  // ตรวจโหมดความสว่างของผู้ใช้จาก Cache ตอนเปิดโปรแกรม
+  async CheckLightMode(){
+    let lightMode = await this.cache.get("lightMode")
+    if(lightMode == undefined){
+      this.setState({
+        dark: false
+      })
+      await this.cache.set("lightMode", "light")
+    }
+    else if(lightMode == "light"){
+      this.setState({
+        dark: false
+      })
+    }
+    else if(lightMode == "dark"){
+      this.setState({
+        dark: true
+      })
+    }
+  }
+
+  // เมื่อผู้ใช้กดปุ่ม เพิ่ม/ลด แสง
+  async handleLightMode(){
+    let lightMode = await this.cache.get("lightMode")
+    console.log(lightMode)
+    if(lightMode == "light"){
+      this.setState({
+        dark: true
+      })
+      await this.cache.set("lightMode", "dark")
+    }
+    else if(lightMode == "dark"){
+      this.setState({
+        dark: false
+      })
+      await this.cache.set("lightMode", "light")
+    }
   }
 
   // Component Function เมื่อมีการกดปุ่ม + บน Header
@@ -686,24 +513,39 @@ export default class MapsView extends React.Component {
     )
   }
 
+  // Component Function การแจ้งเตือนเมื่อมีจุดเสี่ยงใกล้ผู้ใช้
   RiskNotification=()=>{
     const listArea = []
+    let countItem = 0
     this.state.listRiskArea.sort((a,b) => (a.distrance > b.distrance) ? 1 : ((b.distrance > a.distrance) ? -1 : 0))
     this.state.listRiskArea.map((item, index)=>{
-      listArea.push(
-        <View key={index}>
-          <Text style={[styles.modalText, {fontWeight:item.distrance<=100?"bold":"normal"}]}>
-            <Text style={{color:item.like >= 50 ? "red" : item.like >= 25 ? "orange" : "green"}}>{item.detail} </Text>
-            <Text>[{item.distrance} เมตร]</Text>
-          </Text>
-        </View>
-      )
+      if(item.distrance<=250){
+        countItem++
+        listArea.push(
+          <View key={index}>
+            <Text style={styles.modalText}>
+              <Text style={{color:item.like >= 50 ? "red" : item.like >= 25 ? "orange" : "green"}}>{item.detail} </Text>
+              <Text>[{item.distrance} เมตร]</Text>
+            </Text>
+          </View>
+        )
+      }
     })
-    if(listArea.length>3){
-      let alllength = listArea.length
-      listArea.splice(3, listArea.length)
+    if(countItem==0){
+      this.state.listRiskArea.map((item, index)=>{
+        listArea.push(
+          <View key={index}>
+            <Text style={styles.modalText}>
+              <Text style={{color:item.like >= 50 ? "red" : item.like >= 25 ? "orange" : "green"}}>{item.detail} </Text>
+              <Text>[{item.distrance} เมตร]</Text>
+            </Text>
+          </View>
+        )
+      })
+    }
+    if(listArea.length!=this.state.listRiskArea.length){
       listArea.push(
-        <Text key={alllength} style={{fontWeight:'bold'}}>... and {alllength-3} more</Text>
+        <Text key={countItem} style={{fontWeight:'bold'}}>... and {this.state.listRiskArea.length-countItem} more</Text>
       )
     }
     return (
@@ -738,21 +580,27 @@ export default class MapsView extends React.Component {
       <View style={styles.container}>
         {this.state.refresh?<ActivityIndicator style={styles.loading} color={'green'} size={'large'}/>:
         <>
+        <View style={styles.topRightContainer}>
+          <TouchableOpacity style={styles.topRightButton} onPress={() => { this.handleLightMode() } }>
+            <Entypo name={this.state.dark?"light-up":"light-down"} size={24} color="black" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.bottomButton} onPress={() => { this.stopForegroundUpdate;this.setState({addPress:true}) } }>
+          <TouchableOpacity style={styles.bottomButton} onPress={() => { this.stopForegroundUpdate();this.setState({addPress:true}) } }>
             <Ionicons name="add" size={24} color="black" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomButton} onPress={() => { this.state.AlertMe ? this.stopForegroundUpdate() : this.startForegroundUpdate();this.setState({AlertMe: !this.state.AlertMe}); }}>
+          <TouchableOpacity style={[styles.bottomButton, {backgroundColor:this.state.AlertMe ? "#F36C6C":"#6BF38B"}]} onPress={() => { this.state.AlertMe ? this.stopForegroundUpdate() : this.startForegroundUpdate();this.setState({AlertMe: !this.state.AlertMe}); }}>
             <Text style={{ fontSize: 20 }}>{this.state.AlertMe ? 'Stop' : 'Start'}</Text>
           </TouchableOpacity>
         </View>
-        <CheckFocusScreen stopForegroundUpdate={this.stopForegroundUpdate}/>
+        <CheckFocusScreen lightMode={this.CheckLightMode} CheckFakeRisk={this.CheckFakeRisk} stopForegroundUpdate={this.stopForegroundUpdate}/>
         <this.AddNewRisk/>
         <this.RiskNotification />
         <MapView style={styles.map} 
             region={{ latitude: this.state.position.latitude, longitude: this.state.position.longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
             provider={PROVIDER_GOOGLE}
             showsUserLocation={true}
+            customMapStyle={this.state.dark?this.darkMapStyle:this.defaultMapStyle}
         >
           {this.state.data.map((item, index) => (
             <Marker key={index} pinColor={item.like >= 50 ? "red" : item.like >= 25 ? "yellow" : "green"} title={"จุดเสี่ยงที่ " + (item._id) + (item.like >= 50 ? " (อันตราย)" : item.like >= 25 ? " (โปรดระวัง)" : "")} description={item.รายละเอียด} coordinate={item.พิกัด.indexOf(" ") >= 0 ? { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" "))) } : { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",") + 1)) }} />
@@ -797,9 +645,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 10,
-    borderRadius: 100,
+    borderRadius: 40,
     borderWidth: 1,
     backgroundColor: '#ffffff',
+  },
+  topRightContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 6.8,
+    zIndex: 3,
+    opacity: 0.7
+  },
+  topRightButton: {
+    position:'relative',
+    margin: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 7,
+    backgroundColor: '#fff',
   },
   modalView: {
     margin: 20,
@@ -848,12 +711,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     margin: 2
-  },
-  buttonLike: {
-    backgroundColor: '#fff',
-  },
-  buttonDislike: {
-    backgroundColor: '#fff',
   },
   buttonClose: {
     backgroundColor: '#F36C6C',
