@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import db from '../database/firebaseDB';
-import { collection, query, getDocs, addDoc, orderBy} from "firebase/firestore";
+import { collection, query, getDocs, addDoc, orderBy, onSnapshot} from "firebase/firestore";
 import { TextInput } from 'react-native-gesture-handler';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -23,14 +23,6 @@ export default function AddRisk(props, { navigation, route }) {
   const [validateDetailFail, setvalidateDetailFail] = useState(false); // ตรวจสอบช่องที่รายละเอียดผู้ใช้ต้องกรอก
   const [validatePosFail, setvalidatePosFail] = useState(false); // ตรวจสอบช่องที่พิกัดผู้ใช้ต้องกรอก
   const [deviceId, setDeviceId] = useState("")
-  
-  // function GetData ดึงข้อมูลจาก Firebase Database
-  async function GetData() {
-    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
-    const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
-    setData(d)
-  }
   
   async function GetDeviceID() {
     if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
@@ -86,12 +78,6 @@ export default function AddRisk(props, { navigation, route }) {
     }
   }
 
-  // รับค่าจาก Cache ที่เก็บในตัวเครื่องของผู้ใช้
-  async function GetCache(){
-    setalreadyLike(await cache.get('like'))
-    setalreadyDisLike(await cache.get('dislike'))
-  }
-
   // ตั้งค่า cache
   const cache = new Cache({
     namespace: "RANS",
@@ -102,13 +88,25 @@ export default function AddRisk(props, { navigation, route }) {
     backend: AsyncStorage
   });
 
+  const getCollection = (querySnapshot) => {
+    const all_data = [];
+    querySnapshot.forEach((res) => {
+      const { _id, dislike, like, owner, พิกัด, รายละเอียด, สำนักงานเขต } = res.data();
+      all_data.push({
+        key: res.id,
+        _id, dislike, like, owner, พิกัด, รายละเอียด, สำนักงานเขต
+      });
+    });
+    setData(all_data)
+  };
+
   useEffect(()=>{
     const getStartLocation = async () => { // จับตำแหน่งของผู้ใช้
         let location = await Location.getCurrentPositionAsync({});
         setfocusPos(location.coords)
     }
     getStartLocation();
-    GetData();
+    const unsub = onSnapshot(collection(db, "rans-database"), getCollection);
     GetDeviceID();
   }, [])
 
