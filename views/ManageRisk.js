@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { SearchBar } from 'react-native-elements';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
@@ -30,7 +30,8 @@ export default function ManageRisk({ navigation, route }) {
   const [editText, setEditText] = useState("");
   const [detailData, setDetailData] = useState(); // เก็บข้อมูลจุดเสี่ยงเมื่อผู้ใช้กดปุ่ม info
   const [refresh, setRefresh] = useState(true);
-  const [deviceId, setDeviceId] = useState("")
+  const [deviceId, setDeviceId] = useState("");
+  const [validateDetailFail, setvalidateDetailFail] = useState(false);
 
   // function GetPosition ดึงข้อมูลจุดเสี่ยง 100 จุดจาก API
   async function GetPosition(){
@@ -54,7 +55,7 @@ export default function ManageRisk({ navigation, route }) {
 
   // function GetData ดึงข้อมูลจาก Firebase Database
   async function GetData() {
-    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
+    const q = query(collection(db, "rans-database"), orderBy("_id", "asc"));
     const querySnapshot = await getDocs(q);
     const d = querySnapshot.docs.map(doc => doc.data())
     setData(d)
@@ -75,19 +76,9 @@ export default function ManageRisk({ navigation, route }) {
     }
   }
 
-  async function refreshthis(){
-    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
-    const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
-    setData(d)
-    const startPage = d.filter((item)=>item._id>=1 && item._id<6) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
-    setPageData(startPage) // เก็บที่ filter ออกมา
-    setRefresh(false)
-  }
-
   // function GetDataByID ดึงข้อมูลจาก Firebase Database ที่มี id ตาม parameter
   async function GetDataByID(id) {
-    const q = query(collection(db, "rans-database"), where("_id", '==', id));
+    const q = query(collection(db, "rans-database"), where("_id", "==", id));
     const querySnapshot = await getDocs(q);
     const d = querySnapshot.docs.map(doc => doc.data())
     if(decrypt(d[0].owner)==decrypt(deviceId)){
@@ -182,13 +173,13 @@ export default function ManageRisk({ navigation, route }) {
               <View style={styles.modalCloseButton}>
                 {detailData.userOwn?
                 editPress?
-                <TouchableOpacity style={{marginRight: 10}} onPress={()=>{setEditPress(false);editDetail(detailData.data._id)}}>
+                <TouchableOpacity style={{marginRight: 10}} onPress={()=>{editDetail(detailData.data._id)}}>
                   <MaterialIcons name="check" size={24} color="black" />
                 </TouchableOpacity>
                 :<TouchableOpacity style={{marginRight: 10}} onPress={()=>setEditPress(true)}>
                   <MaterialIcons name="edit" size={24} color="black" />
                 </TouchableOpacity>:null}
-                <TouchableOpacity onPress={closeDetail}>
+                <TouchableOpacity onPress={()=>{closeDetail()}}>
                   <AntDesign name="close" size={24} color="black" />
                 </TouchableOpacity>
               </View>
@@ -198,8 +189,9 @@ export default function ManageRisk({ navigation, route }) {
                 <View>
                   {editPress?
                   <View style={{flexDirection:'row', marginBottom: 10}}>
-                    <Text style={{ fontWeight: 'bold' }}>รายละเอียด: </Text>
-                    <TextInput style={{ borderBottomWidth: 1, marginTop: -5 }} defaultValue={editText} onEndEditing={e=>setEditText(e.nativeEvent.text)} multiline/>
+                    <Text style={{ fontWeight: 'bold', color:validateDetailFail?"red":"black" }}>รายละเอียด: </Text>
+                    <TextInput style={{ borderBottomWidth: 1, marginTop: -5, borderBottomColor:validateDetailFail?"red":"black" }} defaultValue={editText} onEndEditing={e=>setEditText(e.nativeEvent.text)} multiline/>
+                    <Text style={{color:"red", fontSize:validateDetailFail?12:0}}>{"\t"}***</Text>
                   </View>
                   :<View style={{marginBottom: 15}}>
                     <Text><Text style={{ fontWeight: 'bold'}}>รายละเอียด</Text>: {editText}</Text>
@@ -232,70 +224,77 @@ export default function ManageRisk({ navigation, route }) {
 
   // แก้ไข Detail
   async function editDetail(id){
-    closeDetail()
-    setRefresh(true)
-    const q = query(collection(db, "rans-database"), where("_id", "==", id)); // หาตัวที่ ID ตรงกับ Parameter
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach(async (snapDoc) => {
-      await updateDoc(doc(db, "rans-database", snapDoc.id), {
-        รายละเอียด: editText
-      }).then(
-        console.log("Detail Updated")
-      )
-    });
-    if(searching){
+    if(editText==""){
+      setvalidateDetailFail(true)
+      return
+    }else{
+      setEditPress(false);
+      closeDetail()
+      setRefresh(true)
+      const q = query(collection(db, "rans-database"), where("_id", "==", id));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(async (snapDoc) => {
+        await updateDoc(doc(db, "rans-database", snapDoc.id), {
+          รายละเอียด: editText
+        }).then(
+          console.log("Detail Updated")
+        )
+      });
+      if(searching){
+        setSearching(false)
+        setSearchStart(0)
+        setSearch("")
+      }
       setPageCount(1)
-      setSearching(false)
-      setSearchStart(0)
-      setSearch("")
+      GetData()
     }
-    refreshthis()
   }
 
   // ปิด Detail
   function closeDetail(){
     setDetailVisible(false)
     setDetailData([])
+    setEditPress(false)
+    setvalidateDetailFail(false)
   }
 
   // อัปเดตข้อมูลการถูกใจใน Firebase Database
   async function updateLike(id) {
     const q = query(collection(db, "rans-database"), where("_id", "==", id)); // หาตัวที่ ID ตรงกับ Parameter
     const querySnapshot = await getDocs(q);
-    const likeCache = await cache.get('like'); // ไม่ใช้ State เพื่อให้อัปเดตง่าย
-    const disLikeCache = await cache.get('dislike');
+    let likeCache = await cache.get('like'); // ไม่ใช้ State เพื่อให้อัปเดตง่าย
+    let disLikeCache = await cache.get('dislike');
     let likeCheck = []
     let disLikeCheck = []
     if(disLikeCache!=undefined){
       disLikeCheck = disLikeCache.filter((item)=>item==id)
     }
     if(likeCache==undefined){
-      await cache.set('like', [id]) // ถ้าไม่มี Cache หรือ ไม่เคย Like จะ set ใหม่
-    }else{
-      likeCheck = likeCache.filter((item)=>item==id)
-      if(likeCheck.length==0 && disLikeCheck.length==0){ // เช็คว่าเคย Like หรือ DisLike หรือไม่
-        likeCache.push(id)
-        querySnapshot.forEach(async (snapDoc) => {
-          await updateDoc(doc(db, "rans-database", snapDoc.id), {
-            like: snapDoc.data().like+1
-          }).then(
-            console.log("Like Updated")
-          )
-        });
-      }else if(likeCheck.length>0){ // ถ้า Like อยู่แล้ว จะเอา Like ออก
-        likeCache.splice(likeCache.findIndex((item)=>item==id), 1)
-        querySnapshot.forEach(async (snapDoc) => {
-          await updateDoc(doc(db, "rans-database", snapDoc.id), {
-            like: snapDoc.data().like-1
-          }).then(
-            console.log("Like Updated")
-          )
-        });
-      }else{
-        alert('Already Dislike')
-      }
-      await cache.set('like', likeCache) // Update Cache
+      likeCache = [] // ถ้าไม่มี Cache หรือ ไม่เคย Like จะ set ใหม่
     }
+    likeCheck = likeCache.filter((item)=>item==id)
+    if(likeCheck.length==0 && disLikeCheck.length==0){ // เช็คว่าเคย Like หรือ DisLike หรือไม่
+      likeCache.push(id)
+      querySnapshot.forEach(async (snapDoc) => {
+        await updateDoc(doc(db, "rans-database", snapDoc.id), {
+          like: snapDoc.data().like+1
+        }).then(
+          console.log("Like Updated")
+        )
+      });
+    }else if(likeCheck.length>0){ // ถ้า Like อยู่แล้ว จะเอา Like ออก
+      likeCache.splice(likeCache.findIndex((item)=>item==id), 1)
+      querySnapshot.forEach(async (snapDoc) => {
+        await updateDoc(doc(db, "rans-database", snapDoc.id), {
+          like: snapDoc.data().like-1
+        }).then(
+          console.log("Like Updated")
+        )
+      });
+    }else{
+      alert('Already Dislike')
+    }
+    await cache.set('like', likeCache) // Update Cache
     GetCache() // ดึง Cache ใหม่เพื่อให้สีของปุ่มถูกใจเปลี่ยน
   }
 
@@ -303,40 +302,39 @@ export default function ManageRisk({ navigation, route }) {
   async function updateDislike(id) {
     const q = query(collection(db, "rans-database"), where("_id", "==", id));
     const querySnapshot = await getDocs(q);
-    const likeCache = await cache.get('like');
-    const disLikeCache = await cache.get('dislike');
+    let likeCache = await cache.get('like');
+    let disLikeCache = await cache.get('dislike');
     let likeCheck = []
     let disLikeCheck = []
     if(likeCache!=undefined){
       likeCheck = likeCache.filter((item)=>item==id)
     }
     if(disLikeCache==undefined){
-      await cache.set('dislike', [id])
-    }else{
-      disLikeCheck = disLikeCache.filter((item)=>item==id)
-      if(disLikeCheck.length==0 && likeCheck.length==0){
-        disLikeCache.push(id)
-        querySnapshot.forEach(async (snapDoc) => {
-          await updateDoc(doc(db, "rans-database", snapDoc.id), {
-            dislike: snapDoc.data().dislike+1
-          }).then(
-            console.log("Dislike Updated")
-          )
-        });
-      }else if(disLikeCheck.length>0){
-        disLikeCache.splice(disLikeCache.findIndex((item)=>item==id), 1)
-        querySnapshot.forEach(async (snapDoc) => {
-          await updateDoc(doc(db, "rans-database", snapDoc.id), {
-            dislike: snapDoc.data().dislike-1
-          }).then(
-            console.log("Dislike Updated")
-          )
-        });
-      }else{
-        alert('Already Like')
-      }
-      await cache.set('dislike', disLikeCache)
+      disLikeCache = []
     }
+    disLikeCheck = disLikeCache.filter((item)=>item==id)
+    if(disLikeCheck.length==0 && likeCheck.length==0){
+      disLikeCache.push(id)
+      querySnapshot.forEach(async (snapDoc) => {
+        await updateDoc(doc(db, "rans-database", snapDoc.id), {
+          dislike: snapDoc.data().dislike+1
+        }).then(
+          console.log("Dislike Updated")
+        )
+      });
+    }else if(disLikeCheck.length>0){
+      disLikeCache.splice(disLikeCache.findIndex((item)=>item==id), 1)
+      querySnapshot.forEach(async (snapDoc) => {
+        await updateDoc(doc(db, "rans-database", snapDoc.id), {
+          dislike: snapDoc.data().dislike-1
+        }).then(
+          console.log("Dislike Updated")
+        )
+      });
+    }else{
+      alert('Already Like')
+    }
+    await cache.set('dislike', disLikeCache)
     GetCache()
   }
 
@@ -469,7 +467,7 @@ export default function ManageRisk({ navigation, route }) {
         <TouchableOpacity style={[styles.nav, {opacity:detailVisible?0.3:1}]} onPress={PreviousPage}>
           <Text>{'<'}</Text>
         </TouchableOpacity>
-        <TextInput style={[styles.nav, {opacity:detailVisible?0.3:1}]} value={pageCount.toString()} keyboardType="numeric" textAlign='center'/>
+        <TextInput style={[styles.nav, {color:'black', opacity:detailVisible?0.3:1}]} value={pageCount.toString()} editable={false} keyboardType="numeric" textAlign='center'/>
         <TouchableOpacity style={[styles.nav, {opacity:detailVisible?0.3:1}]} onPress={NextPage}>
           <Text>{'>'}</Text>
         </TouchableOpacity>
