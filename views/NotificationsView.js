@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView, ActivityIndicator } from 'react-native';
 import db from '../database/firebaseDB';
 import { collection, query, where, getDocs, updateDoc, doc, orderBy} from "firebase/firestore";
@@ -7,6 +7,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // cache s
 import { AntDesign } from '@expo/vector-icons'; // Icon
 import { HeaderButtons, Item } from "react-navigation-header-buttons"; // header button
 import CustomHeaderButton from '../components/CustomHeaderButton'; // header button
+import { useFocusEffect } from '@react-navigation/native';
+
+function CheckFocusScreen(props) {
+  useFocusEffect(
+    useCallback(() => {
+      props.refresh()
+      props.GetData();
+      props.Check();
+      return () => {
+        props.reset();
+      };
+    }, [])
+  );
+  return <View />;
+}
 
 export default class NotificationsView extends React.Component{
   constructor() {
@@ -16,6 +31,12 @@ export default class NotificationsView extends React.Component{
       AllNoti: [],
       refresh: false
     }
+    this.GetData = this.GetData.bind(this);
+    this.CheckIgnoreRisk = this.CheckIgnoreRisk.bind(this)
+    this.updateLike = this.updateLike.bind(this)
+  }
+
+  componentDidMount(){
     // ตั้งค่า cache
     this.cache = new Cache({
       namespace: "RANS",
@@ -25,9 +46,6 @@ export default class NotificationsView extends React.Component{
       },
       backend: AsyncStorage
     });
-  }
-
-  componentDidMount(){
     const { navigation } = this.props;
     navigation.setOptions({
       headerRight:()=>(
@@ -41,19 +59,9 @@ export default class NotificationsView extends React.Component{
         </HeaderButtons>
       )
     });
-    this.focusListener = navigation.addListener("focus", () => {
-      this.setState({
-        refresh: true
-      })
-      this.GetData();
-      this.CheckIgnoreRisk()
-    });
   }
 
   componentWillUnmount(){
-    if(this.focusListener){
-      this.focusListener.remove()
-    }
     this.setState({
       AllNoti: [],
       data: [],
@@ -63,6 +71,7 @@ export default class NotificationsView extends React.Component{
 
   async removeAll () {
     await this.cache.remove('ignoreID')
+    // await this.cache.clearAll()
   }
 
   async GetData () {
@@ -111,32 +120,29 @@ export default class NotificationsView extends React.Component{
   async updateLike(id) {
     const q = query(collection(db, "rans-database"), where("_id", "==", id)); // หาตัวที่ ID ตรงกับ Parameter
     const querySnapshot = await getDocs(q);
-    const likeCache = await this.cache.get('like'); // ไม่ใช้ State เพื่อให้อัปเดตง่าย
+    let likeCache = await this.cache.get('like'); // ไม่ใช้ State เพื่อให้อัปเดตง่าย
     if(likeCache==undefined){
-      await this.cache.set('like', [id]) // ถ้าไม่มี Cache หรือ ไม่เคย Like จะ set ใหม่
-    }else{
-      likeCache.push(id)
-      querySnapshot.forEach(async (snapDoc) => {
-        await updateDoc(doc(db, "rans-database", snapDoc.id), {
-          like: snapDoc.data().like+1
-        }).then(
-          console.log("Like Updated")
-        )
-      });
-      await this.cache.set('like', likeCache) // Update Cache
+      likeCache = []
     }
+    likeCache.push(id)
+    querySnapshot.forEach(async (snapDoc) => {
+      await updateDoc(doc(db, "rans-database", snapDoc.id), {
+        like: snapDoc.data().like+1
+      }).then(
+        console.log("Like Updated")
+      )
+    });
+    await this.cache.set('like', likeCache) // Update Cache
   }
 
   async updateDislike(id) {
     const q = query(collection(db, "rans-database"), where("_id", "==", id));
     const querySnapshot = await getDocs(q);
-    const disLikeCache = await this.cache.get('dislike');
+    let disLikeCache = await this.cache.get('dislike');
     if(disLikeCache==undefined){
-      await this.cache.set('dislike', [id])
-    }else{
-      disLikeCache.push(id)
-      await this.cache.set('dislike', disLikeCache)
+      disLikeCache = []
     }
+    disLikeCache.push(id)
     querySnapshot.forEach(async (snapDoc) => {
       await updateDoc(doc(db, "rans-database", snapDoc.id), {
         dislike: snapDoc.data().dislike+1
@@ -144,6 +150,7 @@ export default class NotificationsView extends React.Component{
         console.log("Dislike Updated")
       )
     });
+    await this.cache.set('dislike', disLikeCache)
   }
   
   async likeHandle (id, index) {
@@ -174,7 +181,8 @@ export default class NotificationsView extends React.Component{
 
   render(){
     return(
-      <ScrollView style={styles.container} contentContainerStyle={!this.state.refresh?null:{ flexGrow: 1, justifyContent: 'center' }}>
+      <ScrollView style={styles.container} contentContainerStyle={!this.state.refresh?(this.state.AllNoti.length>0 && this.state.AllNoti!=undefined)?null:{ flexGrow: 1, justifyContent: 'center' }:{ flexGrow: 1, justifyContent: 'center' }}>
+      <CheckFocusScreen GetData={this.GetData} Check={this.CheckIgnoreRisk} refresh={()=>{this.setState({refresh:true})}} reset={()=>{this.setState({AllNoti:[],data:[],refresh:false})}}/>
       {!this.state.refresh?(this.state.AllNoti.length>0 && this.state.AllNoti!=undefined)?
       this.state.AllNoti.map((item, index)=>(
         <View style={styles.notiContainer} key={index}>
