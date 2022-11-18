@@ -65,3 +65,4 @@ const styles = StyleSheet.create({
       borderBottomWidth: 2,
       borderBottomColor: 'black'
     },
+});
