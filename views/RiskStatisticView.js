@@ -1,17 +1,12 @@
-import { StyleSheet, View, Text, ActivityIndicator , ScrollView, TouchableOpacity } from "react-native";
-import { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ActivityIndicator , ScrollView, TouchableOpacity, Animated, Easing } from "react-native";
+import { useEffect, useState, useRef } from 'react';
 import { Dimensions } from "react-native";
 import { collection, addDoc, getDocs, onSnapshot, where, query, deleteDoc } from "firebase/firestore";
 import db from "../database/firebaseDB";
-import { groupBy } from "lodash";
-import { Value } from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
-
-const screenWidth = Dimensions.get("window").width;
-const screenHeight = Dimensions.get("window").height;
+import List from '../components/List';
 
 export default function RiskStatisticView(){
-    let data = []
 
     let [listData, setListData] = useState([])
 
@@ -64,16 +59,16 @@ export default function RiskStatisticView(){
     }
 
     function generateList(value, index){
-          return <View style={styles.listBox} key={index+6}>
-            <Text style={{width: '7%', textAlign: 'center'}}>{index + 1}</Text>
-            <View style={{width: '1%', borderRightColor: 'black', borderRightWidth: 1, height: '100%'}}></View>
-            <Text style={{width: '50%', paddingLeft: '5%'}}>{value.รายละเอียด}</Text>
-            <Text style={{width: '20%', textAlign: 'center'}}>{value.สำนักงานเขต}</Text>
-            <Text style={{width: '10%', textAlign: 'center'}}><AntDesign name="like2" size={24} color="black" />  {value.like}</Text>
-            <Text style={{width: '10%', textAlign: 'center'}}><AntDesign name="dislike2" size={24} color="black" />  {value.dislike}</Text>
-          </View>
 
-      }
+      return <View style={[styles.listBox]} key={index}>
+        <Text style={{width: '7%', textAlign: 'center'}}>{index + 1}</Text>
+        <View style={{width: '1%', borderRightColor: 'black', borderRightWidth: 1, height: '100%'}}></View>
+        <Text style={{width: '50%', paddingLeft: '5%'}}>{value.รายละเอียด}</Text>
+        <Text style={{width: '20%', textAlign: 'center'}}>{value.สำนักงานเขต}</Text>
+        <Text style={{width: '10%', textAlign: 'center'}}><AntDesign name="like2" size={24} color="black" />  {value.like}</Text>
+        <Text style={{width: '10%', textAlign: 'center'}}><AntDesign name="dislike2" size={24} color="black" />  {value.dislike}</Text>
+      </View>
+    }
 
     useEffect(()=>{
         // getList()
@@ -85,9 +80,12 @@ export default function RiskStatisticView(){
 
     return (
         <View style={styles.container}>
-          {(listDataSort.length != 0)?<ScrollView>
-            {listDataSort.map(generateList)}
-          </ScrollView>:<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>
+          {(listDataSort.length != 0)?
+          // <ScrollView>
+          //   {listDataSort.map(generateList)}
+          // </ScrollView>
+          <List data={listDataSort} />
+          :<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>
             }
         </View>
     );
