@@ -9,7 +9,7 @@ export default function List(props) {
   let data = props.data
 
   let scrollY = React.useRef(new Animated.Value(0)).current;
-  
+
   return (
     <View style={styles.container}>
       <Animated.FlatList
@@ -18,7 +18,7 @@ export default function List(props) {
           { useNativeDriver: true }
         )}
         data={data}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => 'id'+item._id}
         renderItem={({ item, index }) => {
           const inputRange = [
             -1,
