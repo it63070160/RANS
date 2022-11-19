@@ -67,6 +67,27 @@ export default function ManageRisk({ navigation, route }) {
     setRefresh(false)
   }
 
+  async function onFocusGetData() {
+    const q = query(collection(db, "rans-database"), orderBy("_id", "asc"));
+    const querySnapshot = await getDocs(q);
+    const d = querySnapshot.docs.map(doc => doc.data())
+    setData(d)
+    if(searching){
+      const searchData = d.filter((item)=>(item.รายละเอียด.indexOf(search)>=0 || item.สำนักงานเขต.indexOf(search)>=0)).sort((a,b) => (a._id > b._id) ? 1 : ((b._id > a._id) ? -1 : 0))
+      setPageData(searchData)
+    }else{
+      if(start==1){
+        const startPage = d.filter((item)=>item._id>=start && item._id<start+5) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+        setPageData(startPage)
+        setStart(start+5)
+      }else{
+        const startPage = d.filter((item)=>item._id>=start-5 && item._id<start) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+        setPageData(startPage)
+      }
+      setRefresh(false)
+    }
+  }
+
   // เก็บ Device ID ของผู้ใช้
   async function GetDeviceID() {
     if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
@@ -82,12 +103,22 @@ export default function ManageRisk({ navigation, route }) {
     const q = query(collection(db, "rans-database"), where("_id", "==", id));
     const querySnapshot = await getDocs(q);
     const d = querySnapshot.docs.map(doc => doc.data())
-    if(decrypt(d[0].owner)==decrypt(deviceId)){
-      setDetailData({data: d[0], userOwn: true}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
+    if(d.length>0){
+      if(decrypt(d[0].owner)==decrypt(deviceId)){
+        setDetailData({data: d[0], userOwn: true}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
+      }else{
+        setDetailData({data: d[0], userOwn: false}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
+      }
+      setEditText(d[0].รายละเอียด)
     }else{
-      setDetailData({data: d[0], userOwn: false}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
+      alert("ไม่พบข้อมูล (ข้อมูลอาจถูกลบไปแล้ว)")
+      setDetailVisible(false)
+      setRefresh(true)
+      onFocusGetData()
+      setTimeout(()=>{
+        setRefresh(false)
+      }, 3000)
     }
-    setEditText(d[0].รายละเอียด)
   }
 
   // รับค่าจาก Cache ที่เก็บในตัวเครื่องของผู้ใช้
@@ -374,6 +405,15 @@ export default function ManageRisk({ navigation, route }) {
     }
   }
 
+  function handleAdd(){
+    setRefresh(true)
+    onFocusGetData()
+    setTimeout(()=>{
+      setRefresh(false)
+    }, 3000)
+    
+  }
+
   // Component Function เมื่อมีการกดปุ่ม + บน Header
   function AddNewRisk(){
     return (
@@ -390,7 +430,7 @@ export default function ManageRisk({ navigation, route }) {
             <TouchableOpacity style={styles.modalCloseButton} onPress={()=>{setAddPress(false)}}>
               <AntDesign name="close" size={24} color="black" />
             </TouchableOpacity>
-            <AddRisk closeAddModal={closeAddModal}/>
+            <AddRisk closeAddModal={closeAddModal} handleAdd={handleAdd}/>
           </View>
         </View>
       </Modal>
@@ -422,6 +462,7 @@ export default function ManageRisk({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
+      onFocusGetData()
       GetCache() // ทุกครั้งที่ผู้ใช้เปิดหน้านี้จะมีการดึง Cache มาใช้กำหนดสีปุ่ม
       return () => {
       };
