@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AntDesign, FontAwesome, Feather, Ionicons, Foundation, MaterialIcons } from '@expo/vector-icons';
+import { AntDesign, FontAwesome, Feather, Ionicons, Foundation, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 // MapsView Screen
 import MapsView from '../views/MapsView';
 import NotificationsView from '../views/NotificationsView';
@@ -47,7 +47,7 @@ function DevBottomTabNavigator({route}){
                 return <MaterialIcons name="person-search" size={24} color={color}  />
             }}} initialParams={{params: route.params}}/>
             <DevBottomTab.Screen name="RiskList" component={ RiskListView } options={{tabBarIcon: ({ color }) => {
-                return <MaterialIcons name="person-search" size={24} color={color} />
+                return <MaterialCommunityIcons name="star-four-points" size={24} color={color} />
             }}} initialParams={{params: route.params}}/>
         </DevBottomTab.Navigator>
     )
