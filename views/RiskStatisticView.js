@@ -15,47 +15,34 @@ export default function RiskStatisticView(){
     // ดึงข้อมูล row จาก db -> collection
     function getData(querySnapshot) {
 
-        let dataFromFirebase = []
-        querySnapshot.forEach((res) => {
-          dataFromFirebase.push(res.data());
-        })
+      let dataFromFirebase = []
+      querySnapshot.forEach((res) => {
+        dataFromFirebase.push(res.data());
+      })
 
-        setListData(dataFromFirebase)
+      setListData(dataFromFirebase)
 
-        formatData(dataFromFirebase)
+      formatData(dataFromFirebase)
 
     }
 
     function formatData(d){
 
-        function sortName(a, b){
-            if (a.สำนักงานเขต > b.สำนักงานเขต){
-                return 1;
-            }
-            else if(b.สำนักงานเขต > a.สำนักงานเขต){
-                return -1;
-            }
-            else{
-                return 0;
-            }
-        }
+      function sortName(a, b){
+          if (a.สำนักงานเขต > b.สำนักงานเขต){ return 1; }
+          if (b.สำนักงานเขต > a.สำนักงานเขต){ return -1; }
+          return 0;
+      }
 
-        function sortLike(a, b){
-            if ((a.like - a.dislike) > (b.like - b.dislike)){
-                return -1;
-            }
-            else if((b.like - b.dislike) > (a.like - a.dislike)){
-                return 1;
-            }
-            else{
-                return 0;
-            }
-        }
+      function sortLike(a, b){
+        if (a.like > b.like){ return -1; }
+        if (b.like > a.like){ return 1; }
+        return 0;
+      }
 
-        d.sort(sortName)
-        d.sort(sortLike)
+      d = d.sort(sortName).sort(sortLike)
 
-        setListDataSort(d)
+      setListDataSort(d)
     }
 
     function generateList(value, index){

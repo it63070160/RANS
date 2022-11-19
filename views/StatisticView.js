@@ -28,39 +28,39 @@ export default function StatisticView() {
     // show {n} elements first
     const showTop = 5
 
-    async function getList(){
-        try{
-            // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
-            //         .then(response=>{
-            //           data = response.data.result.records
-            //         })
-            //         .catch(error=>{
-            //           console.error(error)
-            //         })
-            // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
-            const customData = require('../assets/RiskArea.json')
-            const customData2 = require('../assets/RiskArea2.json')
-            data = customData.result.records
-            data2 = customData2.result.records
-            data = data.concat(data2)
-            // เอาข้อมูลจาก api ใส่ firebase
-            let docRef;
-            for (let i=0; i<data.length;i++){
-              docRef = await addDoc(collection(db, "rans-database"), {
-                _id: data[i]._id,
-                รายละเอียด: data[i].รายละเอียด,
-                สำนักงานเขต: data[i].สำนักงานเขต,
-                พิกัด: data[i].พิกัด,
-                like: 0,
-                dislike: 0,
-                owner: '-'
-              });
-            console.log("Document written with ID: ", docRef.id);
-            }
-        }catch(err){
-            console.error(err)
-        }
-    }
+    // async function getList(){
+    //     try{
+    //         // await axios.get('https://data.bangkok.go.th/api/3/action/datastore_search?resource_id=db468db2-8450-4867-80fb-5844b5fbd0b4')
+    //         //         .then(response=>{
+    //         //           data = response.data.result.records
+    //         //         })
+    //         //         .catch(error=>{
+    //         //           console.error(error)
+    //         //         })
+    //         // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
+    //         const customData = require('../assets/RiskArea.json')
+    //         const customData2 = require('../assets/RiskArea2.json')
+    //         data = customData.result.records
+    //         data2 = customData2.result.records
+    //         data = data.concat(data2)
+    //         // เอาข้อมูลจาก api ใส่ firebase
+    //         let docRef;
+    //         for (let i=0; i<data.length;i++){
+    //           docRef = await addDoc(collection(db, "rans-database"), {
+    //             _id: data[i]._id,
+    //             รายละเอียด: data[i].รายละเอียด,
+    //             สำนักงานเขต: data[i].สำนักงานเขต,
+    //             พิกัด: data[i].พิกัด,
+    //             like: 1,
+    //             dislike: 0,
+    //             owner: '-'
+    //           });
+    //         console.log("Document written with ID: ", docRef.id);
+    //         }
+    //     }catch(err){
+    //         console.error(err)
+    //     }
+    // }
 
     // ดึงข้อมูล row จาก db -> collection
     function getData(querySnapshot) {
@@ -92,7 +92,14 @@ export default function StatisticView() {
     }
 
     function formatGraph(dt){
-      let sortedData = dt.sort(
+
+      function sortName(a, b){
+        if (a.label > b.label){ return 1; }
+        if (b.label > a.label){ return -1; }
+        return 0;
+      }
+      
+      let sortedData = dt.sort(sortName).sort(
         (p, n) => (p.dataY < n.dataY) ? 1 : (p.dataY > n.dataY) ? -1 : 0);
 
         let resGroupSec = []
@@ -141,30 +148,7 @@ export default function StatisticView() {
       // })
     }
 
-  // function test1(){
-  //   let res = []
-  //   let o = listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)
-  //   res.push(o[3])
-  //   res.push(o[1])
-  //   res.push(o[0])
-  //   res.push(o[2])
-  //   res.push(o[4])
-  //   return res
-  // }
-
-  // function test2(){
-  //   let res = []
-  //   let o = listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)
-  //   res.push(o[3])
-  //   res.push(o[1])
-  //   res.push(o[0])
-  //   res.push(o[2])
-  //   res.push(o[4])
-  //   return res
-  // }
-
     useEffect(()=>{
-      // getList()
       // getData();
       const unsub = onSnapshot(collection(db, 'rans-database'), getData, (error) => {
         console.log(error)
@@ -180,8 +164,6 @@ export default function StatisticView() {
               <BarChart
                 labels={listDataGroupSort.map((value, index) => value.label + "\n (" + value.dataY + " จุด)").slice(0, showTop)}
                 dataY={listDataGroupSort.map((value, index) =>  value.dataY).slice(0, showTop)}
-                // labels={test1()}
-                // dataY={test2()}
                 color={graphColor}
                 height={screenHeight * .28}
                 containerStyles={styles.barChart}
