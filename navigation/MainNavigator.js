@@ -11,6 +11,8 @@ import StatisticView from '../views/StatisticView';
 import ManageRisk from '../views/ManageRisk';
 import RiskStatisticView from '../views/RiskStatisticView';
 import DevView from '../views/DevView';
+import DevelopeListView from '../views/DevelopeListView';
+import RiskListView from '../views/RiskListView';
 
 import * as Device from 'expo-device';
 import * as Application from 'expo-application';
@@ -19,11 +21,13 @@ import db from '../database/firebaseDB';
 import { collection, onSnapshot } from "firebase/firestore";
 
 import { decrypt } from '../components/Encryption';
+import { RotateInUpLeft } from 'react-native-reanimated';
 
 const Drawer = createDrawerNavigator();
 const BottomTab = createBottomTabNavigator();
+const DevBottomTab = createBottomTabNavigator();
 
-export function BottomTabNavigator(){
+function BottomTabNavigator(){
     return (
         <BottomTab.Navigator screenOptions={{headerShown:false}}>
             <BottomTab.Screen name="Statistic" component={ StatisticView } options={{tabBarIcon: ({ color }) => {
@@ -34,6 +38,19 @@ export function BottomTabNavigator(){
             }, title: "Risk Statistic"}}/>
         </BottomTab.Navigator>
     );
+}
+
+function DevBottomTabNavigator({route}){
+    return (
+        <DevBottomTab.Navigator screenOptions={{headerShown: false}}>
+            <DevBottomTab.Screen name="DevelopeList" component={ DevelopeListView } options={{tabBarIcon: ({ color }) => {
+                return <MaterialIcons name="person-search" size={24} color={color}  />
+            }}} initialParams={{params: route.params}}/>
+            <DevBottomTab.Screen name="RiskList" component={ RiskListView } options={{tabBarIcon: ({ color }) => {
+                return <MaterialIcons name="person-search" size={24} color={color} />
+            }}} initialParams={{params: route.params}}/>
+        </DevBottomTab.Navigator>
+    )
 }
 
 function DrawerNavigator(props){
@@ -54,9 +71,9 @@ function DrawerNavigator(props){
                 title: 'Statistic',
                 drawerIcon: ({color}) => { return <FontAwesome name="bar-chart-o" size={24} color={color} />}
             }}/>
-            {props.isDev?<Drawer.Screen name="DevMode" component={DevView} options={{
+            {props.isDev?<Drawer.Screen name="DevMode" component={DevBottomTabNavigator} options={{
                 drawerIcon: ({color}) => { return <MaterialIcons name="developer-mode" size={24} color={color} />}
-            }} initialParams={{ params: props.dev }}/>:null}
+            }} initialParams={props.dev} />:null}
         </Drawer.Navigator>
     );
 }
@@ -77,7 +94,7 @@ export default function MainNavigator(){
         }
         console.log(id)
         let ob = idList.find(val => val.id == id)
-        if (typeof(obj) != 'undefined'){
+        if (typeof(ob) != 'undefined'){
             setIsDev(true)
             setObj(ob)
         }
@@ -102,12 +119,13 @@ export default function MainNavigator(){
         setIdList(dataFromFirebase)
         
     }
-    
 
-    checkDevId();
+    useEffect(()=>{
+        checkDevId();
+    }, [checkDevId, isDev, obj])
 
     useEffect(() => {
-        checkDevId();
+        // checkDevId();
         const unsub = onSnapshot(collection(db, 'rans-dev-database'), getData, (error) => {
             console.log(error)
           });
