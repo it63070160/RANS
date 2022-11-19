@@ -1,32 +1,42 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AntDesign, FontAwesome, Feather, Ionicons, Foundation } from '@expo/vector-icons';
+import { AntDesign, FontAwesome, Feather, Ionicons, Foundation, MaterialIcons } from '@expo/vector-icons';
 // MapsView Screen
 import MapsView from '../views/MapsView';
 import NotificationsView from '../views/NotificationsView';
 import StatisticView from '../views/StatisticView';
 import ManageRisk from '../views/ManageRisk';
 import RiskStatisticView from '../views/RiskStatisticView';
+import DevView from '../views/DevView';
+
+import * as Device from 'expo-device';
+import * as Application from 'expo-application';
+
+import db from '../database/firebaseDB';
+import { collection, onSnapshot } from "firebase/firestore";
+
+import { decrypt } from '../components/Encryption';
 
 const Drawer = createDrawerNavigator();
 const BottomTab = createBottomTabNavigator();
 
-function BottomTabNavigator(){
+export function BottomTabNavigator(){
     return (
         <BottomTab.Navigator screenOptions={{headerShown:false}}>
-            <BottomTab.Screen name="Statistic" component={ StatisticView } options={{tabBarIcon: () => {
-                return <AntDesign name="areachart" size={24} color="black" />
+            <BottomTab.Screen name="Statistic" component={ StatisticView } options={{tabBarIcon: ({ color }) => {
+                return <AntDesign name="areachart" size={24} color={color} />
             },}}/>
-            <BottomTab.Screen name="RiskStatistic" component={ RiskStatisticView } options={{tabBarIcon: () => {
-                return <FontAwesome name="asterisk" size={24} color="black" />
-            },}}/>
+            <BottomTab.Screen name="RiskStatistic" component={ RiskStatisticView } options={{tabBarIcon: ({ color }) => {
+                return <FontAwesome name="asterisk" size={24} color={color} />
+            }, title: "Risk Statistic"}}/>
         </BottomTab.Navigator>
     );
 }
 
-function DrawerNavigator(){
+function DrawerNavigator(props){
     return (
         <Drawer.Navigator screenOptions={{ headerStyle: styles.header, headerTitleAlign: 'center'}}>
             <Drawer.Screen name="Maps" component={MapsView} options={{
@@ -40,17 +50,72 @@ function DrawerNavigator(){
             <Drawer.Screen name="Notifications" component={NotificationsView} options={{
                 drawerIcon: ({color}) => { return <Ionicons name="notifications-outline" size={24} color={color} />}
             }}/>
-            <Drawer.Screen name="Statistic" component={BottomTabNavigator} options={{
+            <Drawer.Screen name="StatisticDrawer" component={BottomTabNavigator} options={{
+                title: 'Statistic',
                 drawerIcon: ({color}) => { return <FontAwesome name="bar-chart-o" size={24} color={color} />}
             }}/>
+            {props.isDev?<Drawer.Screen name="DevMode" component={DevView} options={{
+                drawerIcon: ({color}) => { return <MaterialIcons name="developer-mode" size={24} color={color} />}
+            }} initialParams={{ params: props.dev }}/>:null}
         </Drawer.Navigator>
     );
 }
 
 export default function MainNavigator(){
+
+    let [isDev, setIsDev] = useState(false)
+    let [idList, setIdList] = useState([])
+    let [obj, setObj] = useState()
+
+    const checkDevId = async () => {
+        let id
+        if (Device.osName == 'iPadOS' || Device.osName == 'iOS'){
+            id = await Application.getIosIdForVendorAsync()
+        }
+        else{
+            id = Application.androidId
+        }
+        console.log(id)
+        let ob = idList.find(val => val.id == id)
+        if (typeof(obj) != 'undefined'){
+            setIsDev(true)
+            setObj(ob)
+        }
+        else {
+            setIsDev(false)
+            setObj(ob)
+        }
+
+    }
+
+    function getData(querySnapshot) {
+
+        let dataFromFirebase = []
+        querySnapshot.forEach((res) => {
+          dataFromFirebase.push({
+            'name' : res.data().name,
+            'id' : decrypt(res.data().id),
+            'key' : res.data().key
+          });
+        })
+
+        setIdList(dataFromFirebase)
+        
+    }
+    
+
+    checkDevId();
+
+    useEffect(() => {
+        checkDevId();
+        const unsub = onSnapshot(collection(db, 'rans-dev-database'), getData, (error) => {
+            console.log(error)
+          });
+    }, [])
+
     return(
         <NavigationContainer>
-            <DrawerNavigator/>
+            <DrawerNavigator isDev={isDev} dev={obj}/>
         </NavigationContainer>
     );
 }
