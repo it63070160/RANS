@@ -194,7 +194,7 @@ export default function RiskListView({route}){
                         <Text>Remove risk from API</Text>
                     </TouchableOpacity>
                 </View>
-                <ScrollView>
+                <ScrollView contentContainerStyle={{paddingBottom: '90%'}}>
                     {listDataSort.length!=0?listDataSort.map(generateRiskList):<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>}
                 </ScrollView>
                 
