@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView, ActivityIndicator } from 'react-native';
 import db from '../database/firebaseDB';
-import { collection, query, where, getDocs, updateDoc, doc, orderBy} from "firebase/firestore";
+import { collection, query, getDocs, updateDoc, doc, orderBy, getDoc} from "firebase/firestore";
 import { Cache } from 'react-native-cache'; // cache
 import AsyncStorage from '@react-native-async-storage/async-storage'; // cache storage
 import { AntDesign } from '@expo/vector-icons'; // Icon
@@ -71,19 +71,18 @@ export default class NotificationsView extends React.Component{
 
   async removeAll () {
     await this.cache.remove('ignoreID')
-    // await this.cache.clearAll()
   }
 
   async GetData () {
     const q = query(collection(db, "rans-database"), orderBy("_id", "asc"));
     const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
+    const d = querySnapshot.docs.map((d) => ({ key: d.id, ...d.data() }));
     const ignoreID = await this.cache.get('ignoreID')
     const sortList = []
     if(ignoreID!=undefined){
       ignoreID.map((item)=>{
         d.map((DBitem)=>{
-          if(item==DBitem._id){
+          if(item==DBitem.key){
             sortList.push(DBitem)
           }
         })
@@ -117,44 +116,42 @@ export default class NotificationsView extends React.Component{
   }
 
   // อัปเดตข้อมูลการถูกใจใน Firebase Database
-  async updateLike(id) {
-    const q = query(collection(db, "rans-database"), where("_id", "==", id)); // หาตัวที่ ID ตรงกับ Parameter
-    const querySnapshot = await getDocs(q);
+  async updateLike(key) {
+    const q = doc(db, "rans-database", key); // หาตัวที่ ID ตรงกับ Parameter
+    const querySnapshot = await getDoc(q);
+    const likeData = {key: querySnapshot.id, ...querySnapshot.data()};
     let likeCache = await this.cache.get('like'); // ไม่ใช้ State เพื่อให้อัปเดตง่าย
     if(likeCache==undefined){
       likeCache = []
     }
-    likeCache.push(id)
-    querySnapshot.forEach(async (snapDoc) => {
-      await updateDoc(doc(db, "rans-database", snapDoc.id), {
-        like: snapDoc.data().like+1
-      }).then(
-        console.log("Like Updated")
-      )
-    });
+    likeCache.push(key)
+    await updateDoc(doc(db, "rans-database", key), {
+      like: likeData.like+1
+    }).then(
+      console.log("Like Updated")
+    )
     await this.cache.set('like', likeCache) // Update Cache
   }
 
-  async updateDislike(id) {
-    const q = query(collection(db, "rans-database"), where("_id", "==", id));
-    const querySnapshot = await getDocs(q);
+  async updateDislike(key) {
+    const q = doc(db, "rans-database", key); // หาตัวที่ ID ตรงกับ Parameter
+    const querySnapshot = await getDoc(q);
+    const dislikeData = {key: querySnapshot.id, ...querySnapshot.data()};
     let disLikeCache = await this.cache.get('dislike');
     if(disLikeCache==undefined){
       disLikeCache = []
     }
-    disLikeCache.push(id)
-    querySnapshot.forEach(async (snapDoc) => {
-      await updateDoc(doc(db, "rans-database", snapDoc.id), {
-        dislike: snapDoc.data().dislike+1
-      }).then(
-        console.log("Dislike Updated")
-      )
-    });
+    disLikeCache.push(key)
+    await updateDoc(doc(db, "rans-database", key), {
+      dislike: dislikeData.like+1
+    }).then(
+      console.log("Dislike Updated")
+    )
     await this.cache.set('dislike', disLikeCache)
   }
   
-  async likeHandle (id, index) {
-    this.updateLike(id)
+  async likeHandle (key, index) {
+    this.updateLike(key)
     this.notiList = this.state.AllNoti
     this.notiList.splice(index, 1)
     this.notiCache = await this.cache.get('ignoreID')
@@ -166,8 +163,8 @@ export default class NotificationsView extends React.Component{
     this.CheckIgnoreRisk()
   }
 
-  async dislikeHandle (id, index) {
-    this.updateDislike(id)
+  async dislikeHandle (key, index) {
+    this.updateDislike(key)
     this.notiList = this.state.AllNoti
     this.notiList.splice(index, 1)
     this.notiCache = await this.cache.get('ignoreID')
@@ -188,10 +185,10 @@ export default class NotificationsView extends React.Component{
         <View style={styles.notiContainer} key={index}>
           <Text style={styles.notiTitle}>{item.รายละเอียด}</Text>
           <View style={styles.notiButtonContainer} >
-            <TouchableOpacity style={[styles.notiButton, styles.greenButton]} onPress={()=>{this.likeHandle(item._id, index)}}>
+            <TouchableOpacity style={[styles.notiButton, styles.greenButton]} onPress={()=>{this.likeHandle(item.key, index)}}>
               <AntDesign name="like1" size={24} color={'black'} />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.notiButton, styles.redButton]} onPress={()=>{this.dislikeHandle(item._id, index)}}>
+            <TouchableOpacity style={[styles.notiButton, styles.redButton]} onPress={()=>{this.dislikeHandle(item.key, index)}}>
               <AntDesign name="dislike1" size={24} color={'black'} />
             </TouchableOpacity>
           </View>

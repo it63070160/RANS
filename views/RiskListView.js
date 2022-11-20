@@ -32,13 +32,13 @@ export default function RiskListView({route}){
             if (b.สำนักงานเขต > a.สำนักงานเขต){ return -1; }
             return 0;
         }
-  
+
         function sortLike(a, b){
             if ((a.dislike/(a.like + a.dislike)*100) > (b.dislike/(b.like + b.dislike))*100){ return -1; }
             if ((b.dislike/(b.like + b.dislike)*100) > (a.dislike/(a.like + a.dislike))*100){ return 1; }
             return 0;
         }
-  
+
         d = d.sort(sortName).sort(sortLike)
 
         setListDataSort(d)
@@ -91,14 +91,14 @@ export default function RiskListView({route}){
                             console.error(error)
                         })
                 data = data.concat(data2)
-    
+
                 // // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
                 // const customData = require('../assets/RiskArea.json')
                 // const customData2 = require('../assets/RiskArea2.json')
                 // data = customData.result.records
                 // data2 = customData2.result.records
                 // data = data.concat(data2)
-    
+
                 // เอาข้อมูลจาก api ใส่ firebase
                 let docRef;
                 for (let i=0; i<data.length;i++){
@@ -117,7 +117,7 @@ export default function RiskListView({route}){
                 console.error(err)
             }
         }
-        
+
     }
 
     async function removeAPIRisk(){
@@ -197,7 +197,7 @@ export default function RiskListView({route}){
                 <ScrollView contentContainerStyle={{paddingBottom: '90%'}}>
                     {listDataSort.length!=0?listDataSort.map(generateRiskList):<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>}
                 </ScrollView>
-                
+
             </View>
             <ModalRisk />
         </View>

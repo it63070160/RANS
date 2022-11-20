@@ -39,6 +39,9 @@ export default function AddRisk(props) {
 
   // เมื่อผู้ใช้กดเพิ่ม
   async function handleAddPress(){
+    if(props.handleAdd){
+      props.handleAdd()
+    }
     if(detail == ""){ // Validate
       setvalidateDetailFail(true)
     }
@@ -125,7 +128,7 @@ export default function AddRisk(props) {
         ))}
       </MapView>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={()=>{setMarker(userCoords);setfocusPos(userCoords)}}>
+        <TouchableOpacity style={styles.button} onPress={()=>{setMarker(userCoords);setfocusPos(userCoords);setlatitude((Math.round(userCoords.latitude*1000000)/1000000).toFixed(6).toString());setlongitude((Math.round(userCoords.longitude*1000000)/1000000).toFixed(6).toString())}}>
           <MaterialIcons name="my-location" size={24} color="black" />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.redButton]} onPress={()=>{setMarker(null);setDetail("");setlatitude("");setlongitude("")}}>

@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View, ScrollView, TextInput, Modal,
 import { SearchBar } from 'react-native-elements';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import db from '../database/firebaseDB';
-import { collection, query, getDocs, orderBy, updateDoc, where, doc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, updateDoc, doc, getDoc } from "firebase/firestore";
 import { Cache } from "react-native-cache";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HeaderButtons, Item } from "react-navigation-header-buttons";
@@ -55,9 +55,9 @@ export default function ManageRisk({ navigation, route }) {
 
   // function GetData ดึงข้อมูลจาก Firebase Database
   async function GetData() {
-    const q = query(collection(db, "rans-database"), orderBy("_id", "asc"));
+    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
     const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
+    const d = querySnapshot.docs.map((d) => ({ key: d.id, ...d.data() }));
     setData(d)
     const startPage = d.filter((item)=>item._id>=start && item._id<start+5) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
     setPageData(startPage) // เก็บที่ filter ออกมา
@@ -68,9 +68,9 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   async function onFocusGetData() {
-    const q = query(collection(db, "rans-database"), orderBy("_id", "asc"));
+    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
     const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
+    const d = querySnapshot.docs.map((d) => ({ key: d.id, ...d.data() }));
     setData(d)
     if(searching){
       const searchData = d.filter((item)=>(item.รายละเอียด.indexOf(search)>=0 || item.สำนักงานเขต.indexOf(search)>=0)).sort((a,b) => (a._id > b._id) ? 1 : ((b._id > a._id) ? -1 : 0))
@@ -99,25 +99,22 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   // function GetDataByID ดึงข้อมูลจาก Firebase Database ที่มี id ตาม parameter
-  async function GetDataByID(id) {
-    const q = query(collection(db, "rans-database"), where("_id", "==", id));
-    const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
-    if(d.length>0){
-      if(decrypt(d[0].owner)==decrypt(deviceId)){
-        setDetailData({data: d[0], userOwn: true}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
+  async function GetDataByID(key) {
+    const q = doc(db, "rans-database", key); // หาตัวที่ ID ตรงกับ Parameter
+    const querySnapshot = await getDoc(q);
+    const d = {key: querySnapshot.id, ...querySnapshot.data()};
+    if(d){
+      if(decrypt(d.owner)==decrypt(deviceId)){
+        setDetailData({data: d, userOwn: true}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
       }else{
-        setDetailData({data: d[0], userOwn: false}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
+        setDetailData({data: d, userOwn: false}) // เก็บข้อมูลจุดเสี่ยงที่ filter โดยการ where จาก firebase database
       }
-      setEditText(d[0].รายละเอียด)
+      setEditText(d.รายละเอียด)
     }else{
       alert("ไม่พบข้อมูล (ข้อมูลอาจถูกลบไปแล้ว)")
       setDetailVisible(false)
       setRefresh(true)
       onFocusGetData()
-      setTimeout(()=>{
-        setRefresh(false)
-      }, 3000)
     }
   }
 
@@ -205,7 +202,7 @@ export default function ManageRisk({ navigation, route }) {
               <View style={styles.modalCloseButton}>
                 {detailData.userOwn?
                 editPress?
-                <TouchableOpacity style={{marginRight: 10}} onPress={()=>{editDetail(detailData.data._id)}}>
+                <TouchableOpacity style={{marginRight: 10}} onPress={()=>{editDetail(detailData.data.key)}}>
                   <MaterialIcons name="check" size={24} color="black" />
                 </TouchableOpacity>
                 :<TouchableOpacity style={{marginRight: 10}} onPress={()=>setEditPress(true)}>
@@ -217,7 +214,7 @@ export default function ManageRisk({ navigation, route }) {
               </View>
               <Text style={styles.modalTextHeader}>รายละเอียด</Text>
               {detailData.length!=0?
-              <View key={detailData.data._id}>
+              <View key={detailData.data.key}>
                 <View>
                   {editPress?
                   <View style={{flexDirection:'row', marginBottom: 10}}>
@@ -231,12 +228,12 @@ export default function ManageRisk({ navigation, route }) {
                   <Text><Text style={{ fontWeight: 'bold' }}>สำนักงานเขต</Text>: {detailData.data.สำนักงานเขต}</Text>
                 </View>
                 <View style={styles.modalBottomContainer}>
-                  <Text style={[styles.textStyle, {color:alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==detailData.data._id).length>0?'#6BF38B':'black'}]}>
-                    <AntDesign name="like1" size={24} color={alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==detailData.data._id).length>0?'#6BF38B':'black'} />
+                  <Text style={[styles.textStyle, {color:alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==detailData.data.key).length>0?'#6BF38B':'black'}]}>
+                    <AntDesign name="like1" size={24} color={alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==detailData.data.key).length>0?'#6BF38B':'black'} />
                     {'\t'}{detailData.data.like}
                   </Text>
-                  <Text style={[styles.textStyle, {color:alreadyDisLike==undefined?'black':alreadyDisLike.filter((dislikeitem)=>dislikeitem==detailData.data._id).length>0?'#F36C6C':'black'}]}>
-                    <AntDesign name="dislike1" size={24} color={alreadyDisLike==undefined?'black':alreadyDisLike.filter((dislikeitem)=>dislikeitem==detailData.data._id).length>0?'#F36C6C':'black'} />
+                  <Text style={[styles.textStyle, {color:alreadyDisLike==undefined?'black':alreadyDisLike.filter((dislikeitem)=>dislikeitem==detailData.data.key).length>0?'#F36C6C':'black'}]}>
+                    <AntDesign name="dislike1" size={24} color={alreadyDisLike==undefined?'black':alreadyDisLike.filter((dislikeitem)=>dislikeitem==detailData.data.key).length>0?'#F36C6C':'black'} />
                     {'\t'}{detailData.data.dislike}
                   </Text>
                 </View>
@@ -255,7 +252,7 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   // แก้ไข Detail
-  async function editDetail(id){
+  async function editDetail(key){
     if(editText==""){
       setvalidateDetailFail(true)
       return
@@ -263,22 +260,19 @@ export default function ManageRisk({ navigation, route }) {
       setEditPress(false);
       closeDetail()
       setRefresh(true)
-      const q = query(collection(db, "rans-database"), where("_id", "==", id));
-      const querySnapshot = await getDocs(q);
-      querySnapshot.forEach(async (snapDoc) => {
-        await updateDoc(doc(db, "rans-database", snapDoc.id), {
+      const q = doc(db, "rans-database", key); // หาตัวที่ ID ตรงกับ Parameter
+      const querySnapshot = await getDoc(q);
+      if(querySnapshot.exists){
+        await updateDoc(doc(db, "rans-database", key), {
           รายละเอียด: editText
         }).then(
           console.log("Detail Updated")
         )
-      });
-      if(searching){
-        setSearching(false)
-        setSearchStart(0)
-        setSearch("")
+      }else{
+        alert("ไม่พบข้อมูล (อาจถูกลบไปแล้ว)")
       }
-      setPageCount(1)
-      GetData()
+      setRefresh(true)
+      onFocusGetData()
     }
   }
 
@@ -291,38 +285,35 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   // อัปเดตข้อมูลการถูกใจใน Firebase Database
-  async function updateLike(id) {
-    const q = query(collection(db, "rans-database"), where("_id", "==", id)); // หาตัวที่ ID ตรงกับ Parameter
-    const querySnapshot = await getDocs(q);
+  async function updateLike(key) {
+    const q = doc(db, "rans-database", key); // หาตัวที่ ID ตรงกับ Parameter
+    const querySnapshot = await getDoc(q);
+    const likeData = {key: querySnapshot.id, ...querySnapshot.data()};
     let likeCache = await cache.get('like'); // ไม่ใช้ State เพื่อให้อัปเดตง่าย
     let disLikeCache = await cache.get('dislike');
     let likeCheck = []
     let disLikeCheck = []
     if(disLikeCache!=undefined){
-      disLikeCheck = disLikeCache.filter((item)=>item==id)
+      disLikeCheck = disLikeCache.filter((item)=>item==key)
     }
     if(likeCache==undefined){
       likeCache = [] // ถ้าไม่มี Cache หรือ ไม่เคย Like จะ set ใหม่
     }
-    likeCheck = likeCache.filter((item)=>item==id)
+    likeCheck = likeCache.filter((item)=>item==key)
     if(likeCheck.length==0 && disLikeCheck.length==0){ // เช็คว่าเคย Like หรือ DisLike หรือไม่
-      likeCache.push(id)
-      querySnapshot.forEach(async (snapDoc) => {
-        await updateDoc(doc(db, "rans-database", snapDoc.id), {
-          like: snapDoc.data().like+1
-        }).then(
-          console.log("Like Updated")
-        )
-      });
+      likeCache.push(key)
+      await updateDoc(doc(db, "rans-database", key), {
+        like: likeData.like+1
+      }).then(
+        console.log("Like Updated")
+      )
     }else if(likeCheck.length>0){ // ถ้า Like อยู่แล้ว จะเอา Like ออก
-      likeCache.splice(likeCache.findIndex((item)=>item==id), 1)
-      querySnapshot.forEach(async (snapDoc) => {
-        await updateDoc(doc(db, "rans-database", snapDoc.id), {
-          like: snapDoc.data().like-1
-        }).then(
-          console.log("Like Updated")
-        )
-      });
+      likeCache.splice(likeCache.findIndex((item)=>item==key), 1)
+      await updateDoc(doc(db, "rans-database", key), {
+        like: likeData.like-1
+      }).then(
+        console.log("Like Updated")
+      )
     }else{
       alert('Already Dislike')
     }
@@ -331,38 +322,35 @@ export default function ManageRisk({ navigation, route }) {
   }
 
   // อัปเดตข้อมูลการไม่ถูกใจใน Firebase Database
-  async function updateDislike(id) {
-    const q = query(collection(db, "rans-database"), where("_id", "==", id));
-    const querySnapshot = await getDocs(q);
+  async function updateDislike(key) {
+    const q = doc(db, "rans-database", key); // หาตัวที่ ID ตรงกับ Parameter
+    const querySnapshot = await getDoc(q);
+    const dislikeData = {key: querySnapshot.id, ...querySnapshot.data()};
     let likeCache = await cache.get('like');
     let disLikeCache = await cache.get('dislike');
     let likeCheck = []
     let disLikeCheck = []
     if(likeCache!=undefined){
-      likeCheck = likeCache.filter((item)=>item==id)
+      likeCheck = likeCache.filter((item)=>item==key)
     }
     if(disLikeCache==undefined){
       disLikeCache = []
     }
-    disLikeCheck = disLikeCache.filter((item)=>item==id)
+    disLikeCheck = disLikeCache.filter((item)=>item==key)
     if(disLikeCheck.length==0 && likeCheck.length==0){
-      disLikeCache.push(id)
-      querySnapshot.forEach(async (snapDoc) => {
-        await updateDoc(doc(db, "rans-database", snapDoc.id), {
-          dislike: snapDoc.data().dislike+1
-        }).then(
-          console.log("Dislike Updated")
-        )
-      });
+      disLikeCache.push(key)
+      await updateDoc(doc(db, "rans-database", key), {
+        dislike: dislikeData.dislike+1
+      }).then(
+        console.log("Dislike Updated")
+      )
     }else if(disLikeCheck.length>0){
-      disLikeCache.splice(disLikeCache.findIndex((item)=>item==id), 1)
-      querySnapshot.forEach(async (snapDoc) => {
-        await updateDoc(doc(db, "rans-database", snapDoc.id), {
-          dislike: snapDoc.data().dislike-1
-        }).then(
-          console.log("Dislike Updated")
-        )
-      });
+      disLikeCache.splice(disLikeCache.findIndex((item)=>item==key), 1)
+      await updateDoc(doc(db, "rans-database", key), {
+        dislike: dislikeData.dislike-1
+      }).then(
+        console.log("Dislike Updated")
+      )
     }else{
       alert('Already Like')
     }
@@ -410,7 +398,7 @@ export default function ManageRisk({ navigation, route }) {
     onFocusGetData()
     setTimeout(()=>{
       setRefresh(false)
-    }, 3000)
+    }, 1000)
     
   }
 
@@ -490,16 +478,16 @@ export default function ManageRisk({ navigation, route }) {
       <View style={[styles.riskContainer, {opacity:detailVisible?0.3:1}]} key={index}>
         <Text style={styles.riskTitle}>{item.รายละเอียด}</Text>
         <View style={styles.infoButtonContainer}>
-          <TouchableOpacity style={styles.infoButton} onPress={()=>{GetDataByID(item._id);showDetail()}}>
+          <TouchableOpacity style={styles.infoButton} onPress={()=>{GetDataByID(item.key);showDetail()}}>
             <AntDesign name="infocirlceo" size={24} color="black"/>
           </TouchableOpacity>
         </View>
         <View style={styles.riskButtonContainer}>
-          <TouchableOpacity style={styles.riskButton} onPress={()=>{updateLike(item._id)}}>
-            <AntDesign name="like1" size={24} color={alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==item._id).length>0?'#6BF38B':'black'}/>
+          <TouchableOpacity style={styles.riskButton} onPress={()=>{updateLike(item.key)}}>
+            <AntDesign name="like1" size={24} color={alreadyLike==undefined?'black':alreadyLike.filter((likeitem)=>likeitem==item.key).length>0?'#6BF38B':'black'}/>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.riskButton} onPress={()=>{updateDislike(item._id)}}>
-            <AntDesign name="dislike1" size={24} color={alreadyDisLike==undefined?'black':alreadyDisLike.filter((dislikeitem)=>dislikeitem==item._id).length>0?'#F36C6C':'black'}/>
+          <TouchableOpacity style={styles.riskButton} onPress={()=>{updateDislike(item.key)}}>
+            <AntDesign name="dislike1" size={24} color={alreadyDisLike==undefined?'black':alreadyDisLike.filter((dislikeitem)=>dislikeitem==item.key).length>0?'#F36C6C':'black'}/>
           </TouchableOpacity>
         </View>
       </View>

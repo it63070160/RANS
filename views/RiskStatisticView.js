@@ -29,9 +29,9 @@ export default function RiskStatisticView(){
     function formatData(d){
 
       function sortName(a, b){
-          if (a.สำนักงานเขต > b.สำนักงานเขต){ return 1; }
-          if (b.สำนักงานเขต > a.สำนักงานเขต){ return -1; }
-          return 0;
+        if (a.สำนักงานเขต > b.สำนักงานเขต){ return 1; }
+        if (b.สำนักงานเขต > a.สำนักงานเขต){ return -1; }
+        return 0;
       }
 
       function sortLike(a, b){
@@ -47,7 +47,7 @@ export default function RiskStatisticView(){
 
     function generateList(value, index){
 
-      return <View style={[styles.listBox]} key={index}>
+        return <View style={[styles.listBox]} key={index}>
         <Text style={{width: '7%', textAlign: 'center'}}>{index + 1}</Text>
         <View style={{width: '1%', borderRightColor: 'black', borderRightWidth: 1, height: '100%'}}></View>
         <Text style={{width: '50%', paddingLeft: '5%'}}>{value.รายละเอียด}</Text>
@@ -73,7 +73,7 @@ export default function RiskStatisticView(){
           // </ScrollView>
           <List data={listDataSort} />
           :<ActivityIndicator color={'green'} size={'large'}></ActivityIndicator>
-            }
+          }
         </View>
     );
 }

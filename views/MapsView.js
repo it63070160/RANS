@@ -10,8 +10,6 @@ import db from '../database/firebaseDB'; // Database
 import { collection, query, where, getDocs, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"; // firebase
 import { Cache } from 'react-native-cache'; // cache
 import AsyncStorage from '@react-native-async-storage/async-storage'; // cache storage
-import { HeaderButtons, Item } from "react-navigation-header-buttons"; // header button
-import CustomHeaderButton from '../components/CustomHeaderButton'; // header button
 import TimeNotifications from '../components/TimeNotifications'; // count time
 import AddRisk from './AddRisk'; // Add Risk View
 import { useFocusEffect } from "@react-navigation/native"; // check user is focus or not
@@ -60,14 +58,16 @@ export default class MapsView extends React.Component {
       listRiskArea: [],
       Ignored_Notification: [],
       position: {latitude: 13.736717, longitude: 100.523186},
+      userCoords: {},
       deviceId: "",
       addPress: false,
       AlertMe: false,
       modalVisible: false,
-      refresh: false,
-      dark: false
+      loading: true,
+      dark: false,
+      follow: false,
     }
-    
+
     this.autoCloseModal = this.autoCloseModal.bind(this)
     this.closeAddModal = this.closeAddModal.bind(this)
     this.stopForegroundUpdate = this.stopForegroundUpdate.bind(this)
@@ -85,31 +85,6 @@ export default class MapsView extends React.Component {
       },
       backend: AsyncStorage
     });
-    this.unsub = onSnapshot(collection(db, "rans-database"), this.getCollection);
-    const { navigation } = this.props
-    navigation.setOptions({
-      headerRight:()=>(
-        <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
-          <Item title='refresh' iconName='refresh' onPress={()=>{
-            this.stopForegroundUpdate();
-            this.setState({
-              refresh:true
-            })
-            this.GetData();
-          }}/>
-        </HeaderButtons>
-      )
-    });
-    const requestPermissions = async () => {
-      const foreground = await Location.requestForegroundPermissionsAsync()
-      if (foreground.granted) await Location.requestBackgroundPermissionsAsync()
-      let location = await Location.getCurrentPositionAsync({});
-      this.setState({
-        position: location.coords
-      })
-    }
-    requestPermissions();
-    this.GetDeviceID();
     this.darkMapStyle = [
       {
         "elementType": "geometry",
@@ -245,6 +220,10 @@ export default class MapsView extends React.Component {
       }
     ]
     this.defaultMapStyle = []
+    this.unsub = onSnapshot(collection(db, "rans-database"), this.getCollection);
+    this.requestPermissions();
+    this.GetDeviceID();
+    this.CheckLightMode();
   }
 
   componentWillUnmount(){
@@ -270,6 +249,23 @@ export default class MapsView extends React.Component {
     });
   };
 
+  async requestPermissions () {
+    const foreground = await Location.requestForegroundPermissionsAsync()
+    if (foreground.granted) await Location.requestBackgroundPermissionsAsync()
+    let location = await Location.getCurrentPositionAsync({});
+    this.setState({
+      position: location.coords,
+      userCoords: location.coords
+    })
+  }
+  
+  async trackUser() {
+    let location = await Location.getCurrentPositionAsync({});
+    this.setState({
+      position: location.coords
+    })
+  }
+
   async GetPosition() {
     try{
     //       // JSON หาก API ล่ม
@@ -289,17 +285,6 @@ export default class MapsView extends React.Component {
     }catch(err){
       console.error(err)
     }
-  }
-
-  // ดึงข้อมูลจาก Firebase Database
-  async GetData() {
-    const q = query(collection(db, "rans-database"), orderBy("_id", 'asc'));
-    const querySnapshot = await getDocs(q);
-    const d = querySnapshot.docs.map(doc => doc.data())
-    this.setState({
-      data: d,
-      refresh: false
-    })
   }
 
   // เก็บ Device ID ของผู้ใช้
@@ -330,7 +315,7 @@ export default class MapsView extends React.Component {
     })
   }
 
-  // เมื่อระบบปิด Notification เอง **แก้ ignore เข้าไม่หมด
+  // เมื่อระบบปิด Notification เอง
   async autoCloseModal() {
     this.setState({
       modalVisible: false
@@ -352,8 +337,8 @@ export default class MapsView extends React.Component {
       ignoreList = ignoreCache
       let newlist = []
       this.state.listRiskArea.map((item)=>{
-        if(ignoreCache.indexOf(item.id)<0 && (likeCache.indexOf(item.id)<0 && disLikeCache.indexOf(item.id)<0)){
-          newlist.unshift(item.id)
+        if(ignoreCache.indexOf(item.key)<0 && (likeCache.indexOf(item.key)<0 && disLikeCache.indexOf(item.key)<0)){
+          newlist.unshift(item.key)
         }
       })
       if(newlist.length>1){
@@ -368,8 +353,8 @@ export default class MapsView extends React.Component {
       }
     }else{
       this.state.listRiskArea.map((item)=>{
-        if(likeCache.indexOf(item.id)<0 && disLikeCache.indexOf(item.id)<0){
-          ignoreList.push(item.id)
+        if(likeCache.indexOf(item.key)<0 && disLikeCache.indexOf(item.key)<0){
+          ignoreList.push(item.key)
         }
       })
     }
@@ -386,7 +371,7 @@ export default class MapsView extends React.Component {
         item.พิกัด.indexOf(" ")>=0?{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" ")))}:{latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",")+1))}
       );
       if(pdis<=300){
-        RiskArea.push({detail: item.รายละเอียด, distrance: pdis, id: item._id, like:item.like, dislike:item.dislike})
+        RiskArea.push({detail: item.รายละเอียด, distrance: pdis, id: item._id, key:item.key, like:item.like, dislike:item.dislike})
       }
     })
     
@@ -418,15 +403,12 @@ export default class MapsView extends React.Component {
       {
         // For better logs, we set the accuracy to the most sensitive option
         accuracy: Location.Accuracy.BestForNavigation,
-        // distanceInterval: 1,
+        // distanceInterval: 5,
         enableHighAccuracy:true,
-        timeInterval: 23000
+        timeInterval: 20000
       },
       location => {
-        this.setState({
-          position: location.coords
-        })
-        this.calculatePreciseDistance(this.state.position, this.state.data)
+        this.calculatePreciseDistance(location.coords, this.state.data)
       }
     )
   }
@@ -475,7 +457,6 @@ export default class MapsView extends React.Component {
   // เมื่อผู้ใช้กดปุ่ม เพิ่ม/ลด แสง
   async handleLightMode(){
     let lightMode = await this.cache.get("lightMode")
-    console.log(lightMode)
     if(lightMode == "light"){
       this.setState({
         dark: true
@@ -564,8 +545,9 @@ export default class MapsView extends React.Component {
               <Pressable
                 style={[styles.button, styles.buttonClose]}
                 onPress={() => this.closeModal()}>
-                <Text style={styles.textStyle}>❌ (
-                <TimeNotifications autoCloseModal={this.autoCloseModal}/> 
+                <Text style={styles.textStyle}>
+                  <AntDesign name="close" size={20} color="black" /> (
+                  <TimeNotifications autoCloseModal={this.autoCloseModal}/> 
                 )</Text>
               </Pressable>
             </View>
@@ -578,35 +560,43 @@ export default class MapsView extends React.Component {
   render(){
     return (
       <View style={styles.container}>
-        {this.state.refresh?<ActivityIndicator style={styles.loading} color={'green'} size={'large'}/>:
+        {this.state.loading==false?
         <>
         <View style={styles.topRightContainer}>
-          <TouchableOpacity style={styles.topRightButton} onPress={() => { this.handleLightMode() } }>
-            <Entypo name={this.state.dark?"light-up":"light-down"} size={24} color="black" />
+          <TouchableOpacity style={styles.topRightButton} onPress={() => { this.handleLightMode(); } }>
+            <Entypo name={this.state.dark ? "light-up" : "light-down"} size={24} color="black" />
           </TouchableOpacity>
-        </View>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.bottomButton} onPress={() => { this.stopForegroundUpdate();this.setState({addPress:true}) } }>
-            <Ionicons name="add" size={24} color="black" />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.bottomButton, {backgroundColor:this.state.AlertMe ? "#F36C6C":"#6BF38B"}]} onPress={() => { this.state.AlertMe ? this.stopForegroundUpdate() : this.startForegroundUpdate();this.setState({AlertMe: !this.state.AlertMe}); }}>
-            <Text style={{ fontSize: 20 }}>{this.state.AlertMe ? 'Stop' : 'Start'}</Text>
-          </TouchableOpacity>
-        </View>
+          {this.state.AlertMe ? this.state.follow == false ?
+            <TouchableOpacity style={styles.topRightButton} onPress={() => { this.setState({ follow: true });this.trackUser() } }>
+              <Entypo name="direction" size={24} color="black" />
+            </TouchableOpacity> : null : null}
+        </View><View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.bottomButton} onPress={() => { this.stopForegroundUpdate(); this.setState({ addPress: true }); } }>
+              <Ionicons name="add" size={24} color="black" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.bottomButton, { backgroundColor: this.state.AlertMe ? "#F36C6C" : "#6BF38B" }]} onPress={() => { this.state.AlertMe ? this.stopForegroundUpdate() : this.startForegroundUpdate(); this.setState({ AlertMe: !this.state.AlertMe, follow: !this.state.follow }); } }>
+              <Text style={{ fontSize: 20 }}>{this.state.AlertMe ? 'Stop' : 'Start'}</Text>
+            </TouchableOpacity>
+          </View>
+        </>:null}
         <CheckFocusScreen lightMode={this.CheckLightMode} CheckFakeRisk={this.CheckFakeRisk} stopForegroundUpdate={this.stopForegroundUpdate}/>
         <this.AddNewRisk/>
         <this.RiskNotification />
-        <MapView style={styles.map} 
-            region={{ latitude: this.state.position.latitude, longitude: this.state.position.longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
-            provider={PROVIDER_GOOGLE}
-            showsUserLocation={true}
-            customMapStyle={this.state.dark?this.darkMapStyle:this.defaultMapStyle}
+        <MapView style={styles.map}
+          region={{ latitude: this.state.position.latitude, longitude: this.state.position.longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}
+          provider={PROVIDER_GOOGLE}
+          showsUserLocation={true}
+          followsUserLocation={true}
+          loadingEnabled
+          onUserLocationChange={(e)=>this.state.follow?this.setState({position:e.nativeEvent.coordinate,userCoords:e.nativeEvent.coordinate}):null}
+          customMapStyle={this.state.dark?this.darkMapStyle:this.defaultMapStyle}
+          onMoveShouldSetResponder={()=>{this.state.follow?this.setState({follow:false}):null}}
+          onMapLoaded={()=>this.setState({loading:false})}
         >
-          {this.state.data.map((item, index) => (
-            <Marker key={index} pinColor={item.like >= 50 ? "red" : item.like >= 25 ? "yellow" : "green"} title={"จุดเสี่ยงที่ " + (item._id) + (item.like >= 50 ? " (อันตราย)" : item.like >= 25 ? " (โปรดระวัง)" : "")} description={item.รายละเอียด} coordinate={item.พิกัด.indexOf(" ") >= 0 ? { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" "))) } : { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",") + 1)) }} />
+          {this.state.data.map((item) => (
+            <Marker key={this.state.follow?`${item._id}${Date.now()}`:item._id} pinColor={item.like >= 50 ? "red" : item.like >= 25 ? "yellow" : "green"} title={"จุดเสี่ยงที่ " + (item._id) + (item.like >= 50 ? " (อันตราย)" : item.like >= 25 ? " (โปรดระวัง)" : "")} description={item.รายละเอียด} coordinate={item.พิกัด.indexOf(" ") >= 0 ? { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" "))) } : { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",") + 1)) }} />
           ))}
         </MapView>
-        </>}
       </View>
     );
   }

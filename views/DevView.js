@@ -65,13 +65,13 @@ export default function DevView({route}){
             if (b.สำนักงานเขต > a.สำนักงานเขต){ return -1; }
             return 0;
         }
-  
+
         function sortLike(a, b){
             if ((a.dislike/(a.like + a.dislike)*100) > (b.dislike/(b.like + b.dislike))*100){ return -1; }
             if ((b.dislike/(b.like + b.dislike)*100) > (a.dislike/(a.like + a.dislike))*100){ return 1; }
             return 0;
         }
-  
+
         d = d.sort(sortName).sort(sortLike)
 
         setListDataSort(d)
@@ -140,14 +140,14 @@ export default function DevView({route}){
                             console.error(error)
                         })
                 data = data.concat(data2)
-    
+
                 // // ดึงข้อมูลจากไฟล์ json หากเว็บ api ล่ม
                 // const customData = require('../assets/RiskArea.json')
                 // const customData2 = require('../assets/RiskArea2.json')
                 // data = customData.result.records
                 // data2 = customData2.result.records
                 // data = data.concat(data2)
-    
+
                 // เอาข้อมูลจาก api ใส่ firebase
                 let docRef;
                 for (let i=0; i<data.length;i++){
@@ -166,7 +166,7 @@ export default function DevView({route}){
                 console.error(err)
             }
         }
-        
+
     }
 
     function addDev(){
@@ -278,12 +278,12 @@ export default function DevView({route}){
             }}
           >
             <View style={styles.centeredView}>
-                <View style={[styles.modalView, {width: '50%', height: '23%'}]}>
+                <View style={[styles.modalView]}>
                     <Text>Name</Text>
                     <TextInput placeholder='ชื่อ' style={{borderBottomWidth: 1, borderRadius: 10, width: '100%', marginTop: '5%', borderBottomColor:validateDetailFail?"red":"black" }} defaultValue={inputName} onEndEditing={e=>setInputName(e.nativeEvent.text)} />
                     <Text style={{marginTop: '5%'}}>Device id</Text>
                     <TextInput placeholder='id' style={{borderBottomWidth: 1, borderRadius: 10, width: '100%', marginTop: '5%', borderBottomColor:validateDetailFail?"red":"black" }} defaultValue={inputId} onEndEditing={e=>setInputId(e.nativeEvent.text)} />
-                    <View style={{flex: 1, flexDirection: 'row'}}>
+                    <View style={{flexDirection: 'row'}}>
                         <Pressable
                         style={[styles.button, styles.buttonSubmit, {margin :'5%'}]}
                         onPress={() => addDevToDb(inputName, inputId)}
@@ -304,7 +304,6 @@ export default function DevView({route}){
     }
 
     useEffect(() => {
-        // checkDevId();
         const unsub = onSnapshot(collection(db, 'rans-dev-database'), getDev, (error) => {
             console.log(error)
           });
@@ -394,8 +393,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     addDevButton: {
-        width: '25%',
-        height: '15%',
+        // width: '25%',
+        // height: '15%',
+        padding: 10,
         backgroundColor: '#82CD47',
         justifyContent: 'center',
         alignItems: 'center',
@@ -427,8 +427,8 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginTop: 22
-      },
-      modalView: {
+    },
+    modalView: {
         margin: 20,
         backgroundColor: "white",
         borderRadius: 20,
@@ -436,26 +436,26 @@ const styles = StyleSheet.create({
         alignItems: "center",
         shadowColor: "#000",
         shadowOffset: {
-          width: 0,
-          height: 2
+            width: 0,
+            height: 2
         },
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5
-      },
-      button: {
+    },
+    button: {
         borderRadius: 20,
         padding: 10,
         elevation: 2
-      },
-      buttonClose: {
+    },
+    buttonClose: {
         backgroundColor: "#FF847C",
-      },
-      buttonSubmit: {
+    },
+    buttonSubmit: {
         backgroundColor: "#ABE6CE",
-      },
-      modalText: {
+    },
+    modalText: {
         marginBottom: 15,
         textAlign: "center"
-      },
+    },
 });
