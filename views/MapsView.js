@@ -40,7 +40,6 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 function CheckFocusScreen(props) {
   useFocusEffect(
     useCallback(() => {
-      // props.CheckFakeRisk();
       props.lightMode();
       return () => {
         props.stopForegroundUpdate();
@@ -421,18 +420,6 @@ export default class MapsView extends React.Component {
     })
   }
 
-  // ตรวจจุดเสี่ยงที่มีคนกด dislike มากกว่าหรือเท่ากับ 100
-  async CheckFakeRisk(){
-    const q = query(collection(db, "rans-database"), where("dislike", '>=', 100));
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach(async (snapDoc) => {
-      await deleteDoc(doc(db, "rans-database", snapDoc.id))
-      .then(
-        console.log("Data Deleted")
-      )
-    });
-  }
-
   // ตรวจโหมดความสว่างของผู้ใช้จาก Cache ตอนเปิดโปรแกรม
   async CheckLightMode(){
     let lightMode = await this.cache.get("lightMode")
@@ -579,7 +566,7 @@ export default class MapsView extends React.Component {
             </TouchableOpacity>
           </View>
         </>:null}
-        <CheckFocusScreen lightMode={this.CheckLightMode} CheckFakeRisk={this.CheckFakeRisk} stopForegroundUpdate={this.stopForegroundUpdate}/>
+        <CheckFocusScreen lightMode={this.CheckLightMode} stopForegroundUpdate={this.stopForegroundUpdate}/>
         <this.AddNewRisk/>
         <this.RiskNotification />
         <MapView style={styles.map}

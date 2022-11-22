@@ -81,7 +81,7 @@ export default function ManageRisk({ navigation, route }) {
         setPageData(startPage)
         setStart(start+5)
       }else{
-        const startPage = d.filter((item)=>index>=start-5 && index<start) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+        const startPage = d.filter((item, index)=>index>=start-5 && index<start) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
         setPageData(startPage)
       }
       setRefresh(false)
@@ -399,7 +399,6 @@ export default function ManageRisk({ navigation, route }) {
     setTimeout(()=>{
       setRefresh(false)
     }, 1000)
-
   }
 
   // Component Function เมื่อมีการกดปุ่ม + บน Header
