@@ -51,7 +51,7 @@ export default function RiskListView({route}){
                     <Text style={{width: '50%', paddingLeft: '5%'}}>{value.รายละเอียด + '\n' + 'เขต: ' + value.สำนักงานเขต}</Text>
                     <View style={{width: '20%', paddingLeft: '5%'}}>
                         <Text style={{width: '100%', textAlign: 'center'}}>
-                            {'Fake rate\n'}{value.like+value.dislike != 0?(value.dislike/(value.like + value.dislike)*100).toFixed(2):0}{' %'}
+                            {'Fake rate\n'}{value.like+value.dislike != 0 && !isNaN(value.like+value.dislike)?(value.dislike/(value.like + value.dislike)*100).toFixed(2):(0.00+0.00).toFixed(2)}{' %'}
                         </Text>
                     </View>
                     <View style={{width: '15%', paddingLeft: '5%'}}>
