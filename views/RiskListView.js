@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import db from "../database/firebaseDB";
 import { AntDesign } from "@expo/vector-icons";
 import { ScrollView } from "react-native";
-import { collection, addDoc, getDocs, onSnapshot, where, query, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, onSnapshot, where, query, deleteDoc, getDoc, doc } from "firebase/firestore";
 import axios from "axios";
 import { encrypt, decrypt } from "../components/Encryption";
 
@@ -17,7 +17,7 @@ export default function RiskListView({route}){
 
         let dataFromFirebase = []
         querySnapshot.forEach((res) => {
-          dataFromFirebase.push(res.data());
+          dataFromFirebase.push({key: res.id, ...res.data()});
         })
 
         setListData(dataFromFirebase)
@@ -136,18 +136,23 @@ export default function RiskListView({route}){
     }
 
     async function deleteRisk(select, index){
-        let q = query(collection(db, "rans-database"), where("_id", "==", select._id))
-        let u = await getDocs(q)
-
-        u.docs.forEach((t) => {
-            deleteDoc(t.ref)
-        })
-
-        console.log('Delete Risk ID: ' + select._id)
-        try{
-            getData();
+        const q = doc(db, "rans-database", select.key);
+        const querySnapshot = await getDoc(q);
+        if(querySnapshot.exists){
+            await deleteDoc(doc(db, "rans-database", select.key))
+            .then(()=>{
+                console.log('Delete Risk ID: ' + select._id + " | " + select.key);
+                let splicelist = listDataSort;
+                splicelist.splice(index, 1);
+                setListDataSort(splicelist);
+            })
+        }else{
+            alert("ไม่พบข้อมูล (อาจถูกลบไปแล้ว)")
         }
-        catch(error){}
+        // try{
+        //     getData();
+        // }
+        // catch(error){}
     }
 
     function ModalRisk(){
