@@ -26,7 +26,7 @@ export default function ManageRisk({ navigation, route }) {
   const [alreadyDisLike, setalreadyDisLike] = useState([]); // เก็บจุดเสี่ยงที่ผู้ใช้กดไม่ถูกใจแล้ว
   const [searching, setSearching] = useState(false); // boolean เก็บว่าผู้ใช้กำลังค้นหาหรือไม่
   const [addPress, setAddPress] = useState(false); // boolean ผู้ใช้กดปุ่ม add บน Header หรือไม่
-  const [editPress, setEditPress] = useState(false); // boolean ผู้ใช้กดปุ่ม edit 
+  const [editPress, setEditPress] = useState(false); // boolean ผู้ใช้กดปุ่ม edit
   const [editText, setEditText] = useState(""); // เก็บข้อความที่ผู้ใช้แก้ไข
   const [detailData, setDetailData] = useState(); // เก็บข้อมูลจุดเสี่ยงเมื่อผู้ใช้กดปุ่ม info
   const [refresh, setRefresh] = useState(true); // boolean refresh หน้า
@@ -59,7 +59,7 @@ export default function ManageRisk({ navigation, route }) {
     const querySnapshot = await getDocs(q);
     const d = querySnapshot.docs.map((d) => ({ key: d.id, ...d.data() }));
     setData(d)
-    const startPage = d.filter((item)=>item._id>=start && item._id<start+5) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+    const startPage = d.filter((item, index)=>index>=start && index<start+5) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
     setPageData(startPage) // เก็บที่ filter ออกมา
     if(start==1){
       setStart(start+5)
@@ -77,11 +77,11 @@ export default function ManageRisk({ navigation, route }) {
       setPageData(searchData)
     }else{
       if(start==1){
-        const startPage = d.filter((item)=>item._id>=start && item._id<start+5) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+        const startPage = d.filter((item, index)=>index>=start && index<start+5) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
         setPageData(startPage)
         setStart(start+5)
       }else{
-        const startPage = d.filter((item)=>item._id>=start-5 && item._id<start) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+        const startPage = d.filter((item)=>index>=start-5 && index<start) // ใช้ในการกำหนดว่าหนึ่งหน้ามีกี่ข้อมูล แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
         setPageData(startPage)
       }
       setRefresh(false)
@@ -160,7 +160,7 @@ export default function ManageRisk({ navigation, route }) {
           return
         }
       }
-      const startPage = data.filter((item)=>item._id>=start && item._id<start+5) // แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
+      const startPage = data.filter((item, index)=>index>=start && index<start+5) // แยกข้อมูลที่ได้เป็นออกเป็น 5 ข้อมูล / หน้า
       setPageData(startPage)
       setStart(start+5)
     }
@@ -178,7 +178,7 @@ export default function ManageRisk({ navigation, route }) {
       setPageData(searchPage)
       setSearchStart(searchStart-5)
     }else{
-      const startPage = data.filter((item)=>item._id>=start-10 && item._id<start-5)
+      const startPage = data.filter((item, index)=>index>=start-10 && index<start-5)
       setPageData(startPage)
       setStart(start-5)
     }
@@ -363,7 +363,7 @@ export default function ManageRisk({ navigation, route }) {
 
   // เมื่อกดปุ่มล้างการค้นหา
   function clearSearch(){
-    const startPage = data.filter((item)=>item._id>=start-5 && item._id<start) // กลับไปที่หน้าเดิมก่อนการค้นหา
+    const startPage = data.filter((item, index)=>index>=start-5 && index<start) // กลับไปที่หน้าเดิมก่อนการค้นหา
     setPageData(startPage)
     setPageCount(Math.floor((start)/5))
     setSearching(false)
@@ -375,7 +375,7 @@ export default function ManageRisk({ navigation, route }) {
     setSearching(true)
     const searchData = data.filter((item)=>(item.รายละเอียด.indexOf(search)>=0 || item.สำนักงานเขต.indexOf(search)>=0)).sort((a,b) => (a._id > b._id) ? 1 : ((b._id > a._id) ? -1 : 0)) // ค้นหาและเรียง id
     if(search == ""){ // เมื่อไม่ได้ใส่อะไรในช่องค้นหาและกดค้นหาจะกลับไปที่เดิมหรืออยู่กับที่
-      const startPage = data.filter((item)=>item._id>=start-5 && item._id<start)
+      const startPage = data.filter((item, index)=>index>=start-5 && index<start)
       setSearching(false)
       setPageData(startPage)
       setPageCount(Math.floor((start)/5))
@@ -399,7 +399,7 @@ export default function ManageRisk({ navigation, route }) {
     setTimeout(()=>{
       setRefresh(false)
     }, 1000)
-    
+
   }
 
   // Component Function เมื่อมีการกดปุ่ม + บน Header
