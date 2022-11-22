@@ -9,6 +9,8 @@ import * as Location from 'expo-location';
 import { encrypt } from '../components/Encryption';
 import * as Device from 'expo-device';
 import * as Application from 'expo-application';
+import { Cache } from "react-native-cache";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AddRisk(props) {
   const [marker, setMarker] = useState(null) // กำหนด Marker เมื่อผู้ใช้กดบริเวณแผนที่
@@ -37,8 +39,19 @@ export default function AddRisk(props) {
   const onChangeLati = query => setlatitude(Number(query));
   const onChangeLongi = query => setlongitude(Number(query));
 
+  // ตั้งค่า cache
+  const cache = new Cache({
+    namespace: "RANS",
+    policy: {
+        maxEntries: 50000, // if unspecified, it can have unlimited entries
+        stdTTL: 0 // the standard ttl as number in seconds, default: 0 (unlimited)
+    },
+    backend: AsyncStorage
+  });
+
   // เมื่อผู้ใช้กดเพิ่ม
   async function handleAddPress(){
+    let likeCache = await cache.get('like');
     if(props.handleAdd){
       props.handleAdd()
     }
@@ -57,18 +70,22 @@ export default function AddRisk(props) {
       props.closeAddModal()
       setvalidateDetailFail(false)
       setvalidatePosFail(false)
-      const col = collection(db, 'rans-database');
-      const snapshot = await getDocs(col);
-      const docRef = await addDoc(col, {
-        _id: snapshot.docs.length+1,
+      let maxData = data.reduce((prev, cur)=>prev._id > cur._id ? prev:cur)
+      const docRef = await addDoc(collection(db, 'rans-database'), {
+        _id: maxData._id + 1,
         รายละเอียด: detail,
         สำนักงานเขต: "-",
         พิกัด: (Math.round(marker.latitude*1000000)/1000000).toFixed(6)+", "+(Math.round(marker.longitude*1000000)/1000000).toFixed(6),
-        like: 0,
+        like: 1,
         dislike: 0,
         owner: deviceId
       });
       console.log("Document written with ID: ", docRef.id);
+      if(likeCache==undefined){
+        likeCache = []
+      }
+      likeCache.push(docRef.id)
+      await cache.set('like', likeCache) // Update Cache
     }
   }
 
