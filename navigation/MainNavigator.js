@@ -10,7 +10,7 @@ import NotificationsView from '../views/NotificationsView';
 import StatisticView from '../views/StatisticView';
 import ManageRisk from '../views/ManageRisk';
 import RiskStatisticView from '../views/RiskStatisticView';
-import DevView from '../views/DevView';
+import ReportRisk from '../views/ReportRisk';
 import DevelopeListView from '../views/DevelopeListView';
 import RiskListView from '../views/RiskListView';
 
@@ -48,6 +48,9 @@ function DevBottomTabNavigator({route}){
             }}} initialParams={{params: route.params}}/>
             <DevBottomTab.Screen name="RiskList" component={ RiskListView } options={{tabBarIcon: ({ color }) => {
                 return <MaterialCommunityIcons name="star-four-points" size={24} color={color} />
+            }}} initialParams={{params: route.params}}/>
+            <DevBottomTab.Screen name="Report" component={ ReportRisk } options={{tabBarIcon: ({ color }) => {
+                return <Ionicons name="document-text-outline" size={24} color={color} />
             }}} initialParams={{params: route.params}}/>
         </DevBottomTab.Navigator>
     )
@@ -102,7 +105,6 @@ export default function MainNavigator(){
             setIsDev(false)
             setObj(ob)
         }
-
     }
 
     function getData(querySnapshot) {
@@ -119,13 +121,14 @@ export default function MainNavigator(){
         setIdList(dataFromFirebase)
         
     }
-
+    
     useEffect(()=>{
         checkDevId();
     }, [checkDevId, isDev, obj])
+    
+    
 
     useEffect(() => {
-        // checkDevId();
         const unsub = onSnapshot(collection(db, 'rans-dev-database'), getData, (error) => {
             console.log(error)
           });
