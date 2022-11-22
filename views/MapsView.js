@@ -40,7 +40,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 function CheckFocusScreen(props) {
   useFocusEffect(
     useCallback(() => {
-      props.CheckFakeRisk();
+      // props.CheckFakeRisk();
       props.lightMode();
       return () => {
         props.stopForegroundUpdate();
@@ -593,8 +593,8 @@ export default class MapsView extends React.Component {
           onMoveShouldSetResponder={()=>{this.state.follow?this.setState({follow:false}):null}}
           onMapLoaded={()=>this.setState({loading:false})}
         >
-          {this.state.data.map((item) => (
-            <Marker key={this.state.follow?`${item._id}${Date.now()}`:item._id} pinColor={item.like >= 50 ? "red" : item.like >= 25 ? "yellow" : "green"} title={"จุดเสี่ยงที่ " + (item._id) + (item.like >= 50 ? " (อันตราย)" : item.like >= 25 ? " (โปรดระวัง)" : "")} description={item.รายละเอียด} coordinate={item.พิกัด.indexOf(" ") >= 0 ? { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" "))) } : { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",") + 1)) }} />
+          {this.state.data.map((item, index) => (
+            <Marker key={this.state.follow?`${item._id}${Date.now()}`:this.state.deviceId+index} pinColor={item.like >= 50 ? "red" : item.like >= 25 ? "yellow" : "green"} title={"จุดเสี่ยงที่ " + (item._id) + (item.like >= 50 ? " (อันตราย)" : item.like >= 25 ? " (โปรดระวัง)" : "")} description={item.รายละเอียด} coordinate={item.พิกัด.indexOf(" ") >= 0 ? { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(" "))) } : { latitude: Number(item.พิกัด.slice(0, item.พิกัด.indexOf(","))), longitude: Number(item.พิกัด.slice(item.พิกัด.indexOf(",") + 1)) }} />
           ))}
         </MapView>
       </View>
