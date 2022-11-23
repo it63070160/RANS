@@ -17,21 +17,8 @@ export default class ReportRisk extends Component{
         this.state = {
           data: [],
           reportList: [],
+          tagList: []
         }
-        this.html = `
-        <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-          </head>
-          <body>
-            <div>
-                <img
-                src="../assets/R_A_N_S.png"
-                style="width: 30vw;" />
-            </div>
-          </body>
-        </html>
-        `;
     }
 
     componentDidMount(){
@@ -67,12 +54,62 @@ export default class ReportRisk extends Component{
         });
     };
 
+    htmltable = () => {
+        let t = '';
+        for (let i in this.state.reportList) {
+          const item = this.state.reportList[i];
+          t = t + `<span></span>`
+        }
+        return t;
+     }
+
+    addToTag = () => {
+        let t = ''
+        this.state.reportList.map((item)=>{
+            t = t +`<li>(${item.พิกัด}) ${item.รายละเอียด}</li>`
+        })
+        return t;
+    }
+
     printToFile = async () => {
+        this.html = `
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+          </head>
+          <body>
+            <div style="text-align: right; margin: 10px;">
+                <img src="https://imgur.com/pBL4gAc.png" style="width: 100px; height:100px"/>
+                <h1 style="font-size: 2vh">Road Risk Areas Notification System</h1>
+                <span style="font-size: 2vh">เลขที่ 1 ซอยฉลองกรุง 1 แขวงลาดกระบัง <br>เขตลาดกระบัง กรุงเทพฯ 10520</span>
+            </div>
+            <br><br>
+            <div style="margin-bottom: 50px;">
+                <span style="font-size: 2vh">เรื่อง ขอพิจารณาแก้ไขจุดเสี่ยงทางถนน</span><br><br>
+                <span style="font-size: 2vh">เรียน ศูนย์อำนวยการความปลอดภัยทางถนนกรุงเทพมหานคร สำนักการจราจรและขนส่ง กรุงเทพมหานคร</span>
+            </div>
+            <div style="margin: 10px;">
+                &emsp;<span>กลุ่มผู้จัดทำ Road Risk Areas Notification System (RANS) ได้จัดทำแอปพลิเคชันรวบรวมจุดเสี่ยงต่างๆ และทางผู้จัดทำได้รวบรวมจุดเสี่ยงที่เป็นจุดอันตรายและมีผู้ใช้เห็นด้วยในจุดเสี่ยงนี้หลายคน นำมาทำเป็นรายงานเพื่อแจ้งให้ทราบและทำการแก้ไขเพื่อให้มีความปลอดภัยเพิ่มมากขึ้นในสังคม จุดเสี่ยงที่รวบรวมมาจะประกอบไปด้วยรายละเอียดและพิกัด โดยจุดเสี่ยงที่อันตรายทั้งหมดมีดังนี้</span>
+                <ul style="margin-left: 30px;">
+                    ${this.addToTag()}
+                </ul>
+            </div>
+            <div style="text-align: right; margin: 10px; margin-top: 100px;">
+                <span>ด้วยความเคารพ</span>
+                <br><br><br>
+                <span>................................</span>
+                <br>
+                <span>คณะผู้จัดทำ RANS</span>
+            </div>
+        </body>
+        </html>
+        `;
         // On iOS/android prints the given html. On web prints the HTML from the current page.
         const { uri } = await Print.printToFileAsync({html: this.html});
         console.log('File has been saved to:', uri);
         await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
     };
+
 
     addToReportList(value) {
         if(this.state.reportList.findIndex((item)=>value._id==item._id)<0){
@@ -124,7 +161,9 @@ export default class ReportRisk extends Component{
                     <ScrollView>
                         <Image source={require("../assets/R_A_N_S.png")} style={{marginRight:'2%', alignSelf:'flex-end', width:40, height:60}}/>
                         <Text style={{fontSize:10, textAlign:'right', marginRight:10}}><Text style={{fontWeight:'500'}}>Road Risk Areas Notification System</Text>{'\n'}เลขที่ 1 ซอยฉลองกรุง 1 แขวงลาดกระบัง{'\n'} เขตลาดกระบัง กรุงเทพฯ 10520</Text>
-                        <Text style={{fontSize:10}}>{'\n\n'}{'\t'}กลุ่มผู้จัดทำ Road Risk Areas Notification System (RANS) ได้จัดทำแอปพลิเคชันรวบรวมจุดเสี่ยงต่างๆ และทางผู้จัดทำได้รวบรวมจุดเสี่ยงที่เป็นจุดอันตรายและมีผู้ใช้เห็นด้วยในจุดเสี่ยงนี้สูงมาทำเป็นรายงานเพื่อแจ้งให้ทราบและทำการแก้ไขเพื่อให้มีความปลอดภัยเพิ่มมากขึ้นในสังคม จุดเสี่ยงที่รวบรวมมาจะประกอบไปด้วยรายละเอียดและพิกัด โดยจุดเสี่ยงที่อันตรายทั้งหมดมีดังนี้</Text>
+                        <Text style={{fontSize:10}}>เรื่อง ขอพิจารณาแก้ไขจุดเสี่ยงทางถนน{'\n'}</Text>
+                        <Text style={{fontSize:10}}>เรียน ศูนย์อำนวยการความปลอดภัยทางถนนกรุงเทพมหานคร สำนักการจราจรและขนส่ง กรุงเทพมหานคร{'\n'}</Text>
+                        <Text style={{fontSize:10}}>{'\n\n'}{'\t'}กลุ่มผู้จัดทำ Road Risk Areas Notification System (RANS) ได้จัดทำแอปพลิเคชันรวบรวมจุดเสี่ยงต่างๆ และทางผู้จัดทำได้รวบรวมจุดเสี่ยงที่เป็นจุดอันตรายและมีผู้ใช้เห็นด้วยในจุดเสี่ยงนี้หลายคน นำมาทำเป็นรายงานเพื่อแจ้งให้ทราบและทำการแก้ไขเพื่อให้มีความปลอดภัยเพิ่มมากขึ้นในสังคม จุดเสี่ยงที่รวบรวมมาจะประกอบไปด้วยรายละเอียดและพิกัด โดยจุดเสี่ยงที่อันตรายทั้งหมดมีดังนี้</Text>
                         {this.state.reportList.map((item)=>(
                             <Text key={item._id} style={{fontSize:10, width:'80%', marginLeft:'10%'}}>- ({item.พิกัด}) {item.รายละเอียด}</Text>
                         ))}
