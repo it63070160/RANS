@@ -271,7 +271,7 @@ export default function ManageRisk({ navigation, route }) {
       }else{
         alert("ไม่พบข้อมูล (อาจถูกลบไปแล้ว)")
       }
-      setRefresh(true)
+      setRefresh(false)
       onFocusGetData()
     }
   }
