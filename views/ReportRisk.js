@@ -35,6 +35,24 @@ export default class ReportRisk extends Component{
         this.unsub();
     }
 
+    formatList(d){
+        function sortName(a, b){
+            if (a.สำนักงานเขต > b.สำนักงานเขต){ return 1; }
+            if (b.สำนักงานเขต > a.สำนักงานเขต){ return -1; }
+            return 0;
+        }
+
+        function sortLike(a, b){
+            if ((a.like/(a.like + a.dislike)*100) > (b.like/(b.like + b.dislike))*100){ return -1; }
+            if ((b.like/(b.like + b.dislike)*100) > (a.like/(a.like + a.dislike))*100){ return 1; }
+            return 0;
+        }
+
+        d = d.sort(sortName).sort(sortLike)
+
+        return d
+    }
+
     // ดึงข้อมูลแบบ Real time
     getCollection = (querySnapshot) => {
         const all_data = [];
@@ -46,8 +64,9 @@ export default class ReportRisk extends Component{
             });
         });
         let filterData = all_data.filter((value)=>value.like>50 && ((value.like/(value.like+value.dislike))*100)>75)
+        let sortData = this.formatList(filterData)
         this.setState({
-            data: filterData,
+            data: sortData,
         });
     };
 
@@ -105,7 +124,7 @@ export default class ReportRisk extends Component{
     addToReportList(value) {
         if(this.state.reportList.findIndex((item)=>value._id==item._id)<0){
             this.setState({
-                reportList: [value, ...this.state.reportList]
+                reportList: [...this.state.reportList, value]
             })
         }else{
             let splicelist = this.state.reportList
